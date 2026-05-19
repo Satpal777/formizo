@@ -41,6 +41,16 @@ export const forgotPasswordOutput = z.object({
     forgotPasswordToken: z.string().describe("The password reset token for the user"),
 });
 
+export const resetPasswordInput = z.object({
+    id: z.string().describe("The id of the user resetting their password"),
+    token: z.string().describe("The password reset token"),
+    password: z.string().min(8).max(100).describe("The new password for the user"),
+});
+
+export const resetPasswordOutput = z.object({
+    success: z.boolean().describe("Whether the password reset was successful"),
+});
+
 export type CreateUserWithEmailAndPasswordInputT = z.infer<typeof createUserWithEmailAndPasswordInput>;
 export type CreateUserWithEmailAndPasswordOutputT = z.infer<typeof createUserWithEmailAndPasswordOutput>;
 
@@ -52,3 +62,6 @@ export type signInWithEmailAndPasswordOutputT = z.infer<typeof signInWithEmailAn
 
 export type ForgotPasswordInputT = z.infer<typeof forgotPasswordInput>;
 export type ForgotPasswordOutputT = z.infer<typeof forgotPasswordOutput>;
+
+export type ResetPasswordInputT = z.infer<typeof resetPasswordInput>;
+export type ResetPasswordOutputT = z.infer<typeof resetPasswordOutput>;

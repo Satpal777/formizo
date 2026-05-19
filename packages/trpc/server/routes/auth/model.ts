@@ -38,3 +38,13 @@ export const forgotPasswordOutput = z.object({
     id: z.string().describe("The id of the user requesting a password reset"),
     forgotPasswordToken: z.string().describe("The password reset token for the user"),
 });
+
+export const resetPasswordInput = z.object({
+    id: z.string().describe("The id of the user resetting their password"),
+    token: z.string().describe("The password reset token"),
+    password: z.string().min(8).max(100).describe("The new password for the user"),
+});
+
+export const resetPasswordOutput = z.object({
+    success: z.boolean().describe("Whether the password reset was successful"),
+});

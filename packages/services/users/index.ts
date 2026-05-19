@@ -1,4 +1,4 @@
-import { CreateUserWithEmailAndPasswordInputT, CreateUserWithEmailAndPasswordOutputT, ForgotPasswordInputT, ForgotPasswordOutputT, signInWithEmailAndPasswordInputT, signInWithEmailAndPasswordOutputT, VerifyEmailInputT } from "./model";
+import { CreateUserWithEmailAndPasswordInputT, CreateUserWithEmailAndPasswordOutputT, ForgotPasswordInputT, ForgotPasswordOutputT, ResetPasswordInputT, ResetPasswordOutputT, signInWithEmailAndPasswordInputT, signInWithEmailAndPasswordOutputT, VerifyEmailInputT } from "./model";
 import { and, db, eq } from "@repo/database";
 import { User, users } from "@repo/database/models/user";
 import { generateJWTToken, generateSalt, tokenGenerator } from "../utils/utils";
@@ -106,6 +106,39 @@ export class UserService {
             id: user.id,
             forgotPasswordToken: rawToken
         };
+    }
+
+    /**
+     * Resets a user's password using a valid forgot password token.
+     * @param input
+     * @returns
+     */
+    public async resetPassword(input: ResetPasswordInputT): Promise<ResetPasswordOutputT> {
+        const { id, token, password } = input;
+
+        const hashedToken = crypto.createHmac('sha256', token).update(token).digest('hex');
+
+        const user = await db.select().from(users).where(and(eq(users.id, id), eq(users.forgotPasswordToken, hashedToken))).limit(1).then(result => result[0]);
+
+        if (!user || !user.forgotPasswordTokenExpiresAt) {
+            throw new Error("Invalid or expired password reset token");
+        }
+
+        if (user.forgotPasswordTokenExpiresAt <= new Date()) {
+            throw new Error("Invalid or expired password reset token");
+        }
+
+        const salt = generateSalt();
+        const passwordHash = crypto.createHmac('sha256', salt).update(password).digest('hex');
+
+        await db.update(users).set({
+            passwordSalt: salt,
+            passwordHash,
+            forgotPasswordToken: null,
+            forgotPasswordTokenExpiresAt: null,
+        }).where(eq(users.id, id));
+
+        return { success: true };
     }
 
     /**

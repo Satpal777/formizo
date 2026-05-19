@@ -6,6 +6,8 @@ import {
   createUserWithEmailAndPasswordOutput,
   forgotPasswordInput,
   forgotPasswordOutput,
+  resetPasswordInput,
+  resetPasswordOutput,
   signInWithEmailAndPasswordInput,
   signInWithEmailAndPasswordOutput,
   verifyEmailInput,
@@ -86,6 +88,24 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const { email } = input;
       const result = await userService.forgotPassword({ email });
+      return result;
+    }),
+
+  resetPassword: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/resetPassword"),
+        tags: TAGS,
+        summary: "Reset a user's password",
+        description: "This endpoint resets a user's password using the password reset token created by the forgot password flow.",
+      }
+    })
+    .input(resetPasswordInput)
+    .output(resetPasswordOutput)
+    .mutation(async ({ input }) => {
+      const { id, token, password } = input;
+      const result = await userService.resetPassword({ id, token, password });
       return result;
     })
 
