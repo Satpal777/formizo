@@ -10,3 +10,12 @@ export const createUserWithEmailAndPasswordOutput = z.object({
     id: z.string().describe("The id of the created user"),
     emailVerificationToken: z.string().describe("The email verification token of the created user"),
 });
+
+export const verifyEmailInput = z.object({
+    id: z.string().describe("The id of the user to verify"),
+    token: z.string().describe("The email verification token to verify"),
+});
+
+export const verifyEmailOutput = z.object({
+    success: z.boolean().describe("Whether the email verification was successful"),
+});

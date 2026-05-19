@@ -1,7 +1,12 @@
 import { userService } from "../../services";
 import { publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
-import { createUserWithEmailAndPasswordInput, createUserWithEmailAndPasswordOutput } from "./model";
+import {
+  createUserWithEmailAndPasswordInput,
+  createUserWithEmailAndPasswordOutput,
+  verifyEmailInput,
+  verifyEmailOutput
+} from "./model";
 
 const TAGS = ["Authentication"];
 const getPath = generatePath("/authentication");
@@ -24,8 +29,24 @@ export const authRouter = router({
       const { email, name, password } = input;
       const result = await userService.createUserWithEmailAndPassword({ email, name, password });
       return result;
-    })
+    }),
 
-    
+  verifyEmail: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/verifyEmail"),
+        tags: TAGS,
+        summary: "Verify a user's email address",
+        description: "This endpoint verifies a user's email address using the user id and email verification token.",
+      }
+    })
+    .input(verifyEmailInput)
+    .output(verifyEmailOutput)
+    .mutation(async ({ input }) => {
+      const { id, token } = input;
+      const result = await userService.verifyEmail({ id, token });
+      return result;
+    })
 
 });
