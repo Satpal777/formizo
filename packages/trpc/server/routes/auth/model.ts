@@ -48,3 +48,12 @@ export const resetPasswordInput = z.object({
 export const resetPasswordOutput = z.object({
     success: z.boolean().describe("Whether the password reset was successful"),
 });
+
+export const refreshTokenInput = z.object({
+    refreshToken: z.string().describe("The refresh token to exchange for new tokens"),
+});
+
+export const refreshTokenOutput = z.object({
+    token: z.string().describe("The new authentication token"),
+    refreshToken: z.string().describe("The new refresh token"),
+});

@@ -1,10 +1,9 @@
-import { CreateUserWithEmailAndPasswordInputT, CreateUserWithEmailAndPasswordOutputT, ForgotPasswordInputT, ForgotPasswordOutputT, ResetPasswordInputT, ResetPasswordOutputT, signInWithEmailAndPasswordInputT, signInWithEmailAndPasswordOutputT, VerifyEmailInputT } from "./model";
+import { CreateUserWithEmailAndPasswordInputT, CreateUserWithEmailAndPasswordOutputT, ForgotPasswordInputT, ForgotPasswordOutputT, RefreshTokenInputT, RefreshTokenOutputT, ResetPasswordInputT, ResetPasswordOutputT, signInWithEmailAndPasswordInputT, signInWithEmailAndPasswordOutputT, VerifyEmailInputT } from "./model";
 import { and, db, eq } from "@repo/database";
 import { User, users } from "@repo/database/models/user";
-import { generateJWTToken, generateSalt, tokenGenerator } from "../utils/utils";
-import crypto from "node:crypto";
+import { generateJWTToken, generatePasswordHash, getJWTExpiresAt, hashPassword, hashToken, tokenGenerator, verifyJWTToken } from "../utils/utils";
 import { env } from "../env";
-import { SignOptions } from "jsonwebtoken";
+import type { JwtPayload, SignOptions } from "jsonwebtoken";
 
 /**
  * UserService class provides methods for user management, including creating users with email and password,
@@ -23,6 +22,90 @@ export class UserService {
     }
 
     /**
+     * Retrieves a user by their id.
+     * @param id
+     * @returns
+     */
+    private getUserById(id: string): Promise<User | undefined> {
+        return db.select().from(users).where(eq(users.id, id)).limit(1).then(result => result[0]);
+    }
+
+    /**
+     * Creates access and refresh tokens for a user.
+     * @param userId
+     * @returns
+     */
+    private generateAuthTokens(userId: string) {
+        const token = generateJWTToken({ userId }, env.JWT_SECRET!, (env.JWT_EXPIRES_IN as SignOptions["expiresIn"])!);
+        const refreshToken = generateJWTToken({ userId }, env.REFRESH_TOKEN_SECRET!, (env.REFRESH_TOKEN_EXPIRES_IN as SignOptions["expiresIn"])!);
+
+        return { token, refreshToken };
+    }
+
+    /**
+     * Stores a hashed refresh token and its expiry for a user.
+     * @param userId
+     * @param refreshToken
+     */
+    private async saveRefreshToken(userId: string, refreshToken: string) {
+        await db.update(users).set({
+            refreshToken: hashToken(refreshToken),
+            refreshTokenExpiresAt: getJWTExpiresAt(refreshToken, env.REFRESH_TOKEN_SECRET!),
+        }).where(eq(users.id, userId));
+    }
+
+    /**
+     * Validates a user's password against the stored password hash.
+     * @param user
+     * @param password
+     * @param error
+     */
+    private validatePassword(user: User, password: string, error: string) {
+        if (!user.passwordSalt || !user.passwordHash) {
+            throw new Error(error);
+        }
+
+        const passwordHash = hashPassword(password, user.passwordSalt);
+
+        if (passwordHash !== user.passwordHash) {
+            throw new Error(error);
+        }
+    }
+
+    /**
+     * Resolves a user from a valid stored refresh token.
+     * @param refreshToken
+     * @param error
+     * @returns
+     */
+    private async getUserByValidRefreshToken(refreshToken: string, error: string) {
+        const decoded = verifyJWTToken(refreshToken, env.REFRESH_TOKEN_SECRET!);
+
+        if (!decoded || typeof decoded === "string") {
+            throw new Error(error);
+        }
+
+        const { userId } = decoded as JwtPayload & { userId?: string };
+
+        if (!userId) {
+            throw new Error(error);
+        }
+
+        const user = await this.getUserById(userId);
+        const hashedRefreshToken = hashToken(refreshToken);
+
+        if (!user || user.refreshToken !== hashedRefreshToken || !user.refreshTokenExpiresAt) {
+            throw new Error(error);
+        }
+
+        if (user.refreshTokenExpiresAt <= new Date()) {
+            throw new Error(error);
+        }
+
+        return user;
+    }
+
+    /**
      * Creates a new user with the provided email and password.
      * @param input 
      * @returns 
@@ -35,8 +118,7 @@ export class UserService {
             throw new Error("User with this email already exists");
         }
 
-        const salt = generateSalt();
-        const passwordHash = crypto.createHmac('sha256', salt).update(password).digest('hex');
+        const { salt, passwordHash } = generatePasswordHash(password);
 
         const [rawToken, hashedToken] = tokenGenerator();
 
@@ -67,7 +149,7 @@ export class UserService {
     public async verifyEmail(input: VerifyEmailInputT) {
         const { id, token } = input;
 
-        const hashedToken = crypto.createHmac('sha256', token).update(token).digest('hex');
+        const hashedToken = hashToken(token);
 
         const user = await db.select().from(users).where(and(eq(users.verificationToken, hashedToken), eq(users.id, id))).limit(1).then(result => result[0]);
 
@@ -116,7 +198,7 @@ export class UserService {
     public async resetPassword(input: ResetPasswordInputT): Promise<ResetPasswordOutputT> {
         const { id, token, password } = input;
 
-        const hashedToken = crypto.createHmac('sha256', token).update(token).digest('hex');
+        const hashedToken = hashToken(token);
 
         const user = await db.select().from(users).where(and(eq(users.id, id), eq(users.forgotPasswordToken, hashedToken))).limit(1).then(result => result[0]);
 
@@ -128,8 +210,7 @@ export class UserService {
             throw new Error("Invalid or expired password reset token");
         }
 
-        const salt = generateSalt();
-        const passwordHash = crypto.createHmac('sha256', salt).update(password).digest('hex');
+        const { salt, passwordHash } = generatePasswordHash(password);
 
         await db.update(users).set({
             passwordSalt: salt,
@@ -139,6 +220,26 @@ export class UserService {
         }).where(eq(users.id, id));
 
         return { success: true };
+    }
+
+    /**
+     * Refreshes authentication tokens using a valid refresh token.
+     * @param input
+     * @returns
+     */
+    public async refreshToken(input: RefreshTokenInputT): Promise<RefreshTokenOutputT> {
+        const { refreshToken } = input;
+        const error = "Invalid or expired refresh token";
+
+        const user = await this.getUserByValidRefreshToken(refreshToken, error);
+        const { token, refreshToken: newRefreshToken } = this.generateAuthTokens(user.id);
+
+        await this.saveRefreshToken(user.id, newRefreshToken);
+
+        return {
+            token,
+            refreshToken: newRefreshToken
+        };
     }
 
     /**
@@ -157,21 +258,14 @@ export class UserService {
             throw new Error(error);
         }
 
-        if (!user.passwordSalt || !user.passwordHash) {
-            throw new Error(error);
-        }
+        this.validatePassword(user, password, error);
 
-        const passwordHash = crypto.createHmac('sha256', user.passwordSalt).update(password).digest('hex');
+        const { token, refreshToken } = this.generateAuthTokens(user.id);
 
-        if (passwordHash !== user.passwordHash) {
-            throw new Error(error);
-        }
-
-        const jwtToken = generateJWTToken({ userId: user.id }, env.JWT_SECRET!, (env.JWT_EXPIRES_IN as SignOptions["expiresIn"])!);
-        const refreshToken = generateJWTToken({ userId: user.id }, env.REFRESH_TOKEN_SECRET!, (env.REFRESH_TOKEN_EXPIRES_IN as SignOptions["expiresIn"])!);
+        await this.saveRefreshToken(user.id, refreshToken);
 
         return {
-            token: jwtToken,
+            token,
             refreshToken
         };
     }

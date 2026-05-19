@@ -6,6 +6,8 @@ import {
   createUserWithEmailAndPasswordOutput,
   forgotPasswordInput,
   forgotPasswordOutput,
+  refreshTokenInput,
+  refreshTokenOutput,
   resetPasswordInput,
   resetPasswordOutput,
   signInWithEmailAndPasswordInput,
@@ -106,6 +108,24 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const { id, token, password } = input;
       const result = await userService.resetPassword({ id, token, password });
+      return result;
+    }),
+
+  refreshToken: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/refreshToken"),
+        tags: TAGS,
+        summary: "Refresh authentication tokens",
+        description: "This endpoint exchanges a valid refresh token for a new authentication token and refresh token.",
+      }
+    })
+    .input(refreshTokenInput)
+    .output(refreshTokenOutput)
+    .mutation(async ({ input }) => {
+      const { refreshToken } = input;
+      const result = await userService.refreshToken({ refreshToken });
       return result;
     })
 

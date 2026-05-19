@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import JWT from "jsonwebtoken";
-import type { SignOptions } from "jsonwebtoken";
+import type { JwtPayload, SignOptions } from "jsonwebtoken";
 
 /**
  * Generates a random salt for password hashing.
@@ -11,12 +11,52 @@ export function generateSalt() {
 }
 
 /**
+ * Creates a SHA-256 HMAC digest.
+ * @param value
+ * @param secret
+ * @returns
+ */
+function createSha256Hmac(value: string, secret: string) {
+    return crypto.createHmac("sha256", secret).update(value).digest("hex");
+}
+
+/**
+ * Hashes a token before storing or comparing it.
+ * @param token
+ * @returns
+ */
+export function hashToken(token: string) {
+    return createSha256Hmac(token, token);
+}
+
+/**
+ * Hashes a password using the provided salt.
+ * @param password
+ * @param salt
+ * @returns
+ */
+export function hashPassword(password: string, salt: string) {
+    return createSha256Hmac(password, salt);
+}
+
+/**
+ * Generates a salt and password hash pair.
+ * @param password
+ * @returns
+ */
+export function generatePasswordHash(password: string) {
+    const salt = generateSalt();
+    const passwordHash = hashPassword(password, salt);
+    return { salt, passwordHash };
+}
+
+/**
  * Generates a token and its hashed version.
  * @returns 
  */
 export function tokenGenerator() {
     const rawToken = generateSalt();
-    const hashedToken = crypto.createHmac("sha256", rawToken).update(rawToken).digest("hex");
+    const hashedToken = hashToken(rawToken);
     return [rawToken, hashedToken] as const;
 }
 
@@ -43,4 +83,22 @@ export function verifyJWTToken(token: string, secret: string) {
     } catch (error) {
         return null;
     }
+}
+
+/**
+ * Gets a JWT expiration date from a token.
+ * @param token
+ * @param secret
+ * @returns
+ */
+export function getJWTExpiresAt(token: string, secret: string) {
+    const decodedToken = verifyJWTToken(token, secret);
+
+    if (!decodedToken || typeof decodedToken === "string") {
+        return null;
+    }
+
+    const { exp } = decodedToken as JwtPayload;
+
+    return exp ? new Date(exp * 1000) : null;
 }
