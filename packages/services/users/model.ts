@@ -1,0 +1,43 @@
+import { ref } from "node:process";
+import { z } from "zod";
+
+export const createUserWithEmailAndPasswordInput = z.object({
+    name: z.string().max(255).describe("The name of the user to create"),
+    email: z.email().max(255).describe("The email of the user to create"),
+    password: z.string().min(8).max(100).describe("The password of the user to create"),
+})
+
+export const createUserWithEmailAndPasswordOutput = z.object({
+    id: z.string().describe("The id of the created user"),
+    emailVerificationToken: z.string().describe("The email verification token of the created user"),
+})
+
+
+export const verifyEmailInput = z.object({
+    id: z.string().describe("The id of the user to verify"),
+    token: z.string().describe("The email verification token to verify"),
+})
+
+export const verifyEmailOutput = z.object({
+    success: z.boolean().describe("Whether the email verification was successful"),
+})
+
+
+export const signInWithEmailAndPasswordInput = z.object({
+    email: z.email().max(255).describe("The email of the user to sign in"),
+    password: z.string().min(8).max(100).describe("The password of the user to sign in"),
+});
+
+export const signInWithEmailAndPasswordOutput = z.object({
+    token: z.string().describe("The authentication token for the signed-in user"),
+    refreshToken: z.string().describe("The refresh token for the signed-in user"),
+});
+
+export type CreateUserWithEmailAndPasswordInputT = z.infer<typeof createUserWithEmailAndPasswordInput>;
+export type CreateUserWithEmailAndPasswordOutputT = z.infer<typeof createUserWithEmailAndPasswordOutput>;
+
+export type VerifyEmailInputT = z.infer<typeof verifyEmailInput>;
+export type VerifyEmailOutputT = z.infer<typeof verifyEmailOutput>;
+
+export type signInWithEmailAndPasswordInputT = z.infer<typeof signInWithEmailAndPasswordInput>;
+export type signInWithEmailAndPasswordOutputT = z.infer<typeof signInWithEmailAndPasswordOutput>;

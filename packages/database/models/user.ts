@@ -1,25 +1,33 @@
-import {
-  pgTable,
-  uuid,
-  varchar,
-  timestamp,
-  boolean,
-  text,
-} from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, text, timestamp, boolean } from "drizzle-orm/pg-core";
 
-export const usersTable = pgTable("users", {
+/**
+ * Users table definition for authentication and user management.
+ * This table includes fields for storing user information, email verification,
+ * and refresh token management.
+ */
+export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
 
-  fullName: varchar("full_name", { length: 80 }).notNull(),
-
+  name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }).notNull().unique(),
-  emailVerified: boolean("email_verified").default(false),
 
-  profileImageUrl: text("profile_image_url"),
+  passwordSalt: text("password_salt"),
+  passwordHash: text("password_hash"),
 
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  verificationToken: text("verification_token"),
+  verificationTokenExpiresAt: timestamp("verification_token_expires_at", { withTimezone: true }),
+
+  forgotPasswordToken: text("forgot_password_token"),
+  forgotPasswordTokenExpiresAt: timestamp("forgot_password_token_expires_at", { withTimezone: true }),
+
+  refreshToken: text("refresh_token"),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export type SelectUser = typeof usersTable.$inferSelect;
-export type InsertUser = typeof usersTable.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+
