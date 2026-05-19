@@ -19,3 +19,13 @@ export const verifyEmailInput = z.object({
 export const verifyEmailOutput = z.object({
     success: z.boolean().describe("Whether the email verification was successful"),
 });
+
+export const signInWithEmailAndPasswordInput = z.object({
+    email: z.email().max(255).describe("The email of the user to sign in"),
+    password: z.string().min(8).max(100).describe("The password of the user to sign in"),
+});
+
+export const signInWithEmailAndPasswordOutput = z.object({
+    token: z.string().describe("The authentication token for the signed-in user"),
+    refreshToken: z.string().describe("The refresh token for the signed-in user"),
+});

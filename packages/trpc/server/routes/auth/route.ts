@@ -4,6 +4,8 @@ import { generatePath } from "../../utils/path-generator";
 import {
   createUserWithEmailAndPasswordInput,
   createUserWithEmailAndPasswordOutput,
+  signInWithEmailAndPasswordInput,
+  signInWithEmailAndPasswordOutput,
   verifyEmailInput,
   verifyEmailOutput
 } from "./model";
@@ -46,6 +48,24 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const { id, token } = input;
       const result = await userService.verifyEmail({ id, token });
+      return result;
+    }),
+
+  signInWithEmailAndPassword: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/signInWithEmailAndPassword"),
+        tags: TAGS,
+        summary: "Sign in with email and password",
+        description: "This endpoint signs in a user using an email address and password. It returns an authentication token and refresh token.",
+      }
+    })
+    .input(signInWithEmailAndPasswordInput)
+    .output(signInWithEmailAndPasswordOutput)
+    .mutation(async ({ input }) => {
+      const { email, password } = input;
+      const result = await userService.signInWithEmailAndPassword({ email, password });
       return result;
     })
 
