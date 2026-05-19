@@ -1,4 +1,3 @@
-import { ref } from "node:process";
 import { z } from "zod";
 
 export const createUserWithEmailAndPasswordInput = z.object({
@@ -33,6 +32,15 @@ export const signInWithEmailAndPasswordOutput = z.object({
     refreshToken: z.string().describe("The refresh token for the signed-in user"),
 });
 
+export const forgotPasswordInput = z.object({
+    email: z.email().max(255).describe("The email of the user requesting a password reset"),
+});
+
+export const forgotPasswordOutput = z.object({
+    id: z.string().describe("The id of the user requesting a password reset"),
+    forgotPasswordToken: z.string().describe("The password reset token for the user"),
+});
+
 export type CreateUserWithEmailAndPasswordInputT = z.infer<typeof createUserWithEmailAndPasswordInput>;
 export type CreateUserWithEmailAndPasswordOutputT = z.infer<typeof createUserWithEmailAndPasswordOutput>;
 
@@ -41,3 +49,6 @@ export type VerifyEmailOutputT = z.infer<typeof verifyEmailOutput>;
 
 export type signInWithEmailAndPasswordInputT = z.infer<typeof signInWithEmailAndPasswordInput>;
 export type signInWithEmailAndPasswordOutputT = z.infer<typeof signInWithEmailAndPasswordOutput>;
+
+export type ForgotPasswordInputT = z.infer<typeof forgotPasswordInput>;
+export type ForgotPasswordOutputT = z.infer<typeof forgotPasswordOutput>;

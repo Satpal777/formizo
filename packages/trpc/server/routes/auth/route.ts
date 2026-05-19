@@ -4,6 +4,8 @@ import { generatePath } from "../../utils/path-generator";
 import {
   createUserWithEmailAndPasswordInput,
   createUserWithEmailAndPasswordOutput,
+  forgotPasswordInput,
+  forgotPasswordOutput,
   signInWithEmailAndPasswordInput,
   signInWithEmailAndPasswordOutput,
   verifyEmailInput,
@@ -66,6 +68,24 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const { email, password } = input;
       const result = await userService.signInWithEmailAndPassword({ email, password });
+      return result;
+    }),
+
+  forgotPassword: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/forgotPassword"),
+        tags: TAGS,
+        summary: "Request a password reset",
+        description: "This endpoint creates a password reset token for a user using their email address.",
+      }
+    })
+    .input(forgotPasswordInput)
+    .output(forgotPasswordOutput)
+    .mutation(async ({ input }) => {
+      const { email } = input;
+      const result = await userService.forgotPassword({ email });
       return result;
     })
 

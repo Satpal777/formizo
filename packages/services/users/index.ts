@@ -1,4 +1,4 @@
-import { CreateUserWithEmailAndPasswordInputT, CreateUserWithEmailAndPasswordOutputT, signInWithEmailAndPasswordInputT, signInWithEmailAndPasswordOutputT, VerifyEmailInputT } from "./model";
+import { CreateUserWithEmailAndPasswordInputT, CreateUserWithEmailAndPasswordOutputT, ForgotPasswordInputT, ForgotPasswordOutputT, signInWithEmailAndPasswordInputT, signInWithEmailAndPasswordOutputT, VerifyEmailInputT } from "./model";
 import { and, db, eq } from "@repo/database";
 import { User, users } from "@repo/database/models/user";
 import { generateJWTToken, generateSalt, tokenGenerator } from "../utils/utils";
@@ -78,6 +78,34 @@ export class UserService {
         await db.update(users).set({ emailVerified: true }).where(eq(users.id, id));
 
         return { success: true };
+    }
+
+    /**
+     * Creates a password reset token for a user with the provided email.
+     * @param input
+     * @returns
+     */
+    public async forgotPassword(input: ForgotPasswordInputT): Promise<ForgotPasswordOutputT> {
+        const { email } = input;
+
+        const user = await this.getUserByEmail(email);
+
+        if (!user) {
+            throw new Error("User with this email does not exist");
+        }
+
+        const [rawToken, hashedToken] = tokenGenerator();
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+        await db.update(users).set({
+            forgotPasswordToken: hashedToken,
+            forgotPasswordTokenExpiresAt: expiresAt
+        }).where(eq(users.id, user.id));
+
+        return {
+            id: user.id,
+            forgotPasswordToken: rawToken
+        };
     }
 
     /**

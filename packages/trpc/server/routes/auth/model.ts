@@ -29,3 +29,12 @@ export const signInWithEmailAndPasswordOutput = z.object({
     token: z.string().describe("The authentication token for the signed-in user"),
     refreshToken: z.string().describe("The refresh token for the signed-in user"),
 });
+
+export const forgotPasswordInput = z.object({
+    email: z.email().max(255).describe("The email of the user requesting a password reset"),
+});
+
+export const forgotPasswordOutput = z.object({
+    id: z.string().describe("The id of the user requesting a password reset"),
+    forgotPasswordToken: z.string().describe("The password reset token for the user"),
+});
