@@ -176,6 +176,10 @@ export class UserService {
             throw new Error("User with this email does not exist");
         }
 
+        if(user.emailVerified === false) {
+            throw new Error("Email not verified");
+        }
+
         const [rawToken, hashedToken] = tokenGenerator();
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
@@ -256,6 +260,10 @@ export class UserService {
 
         if (!user) {
             throw new Error(error);
+        }
+
+        if (user.emailVerified === false) {
+            throw new Error("Email not verified");
         }
 
         this.validatePassword(user, password, error);
