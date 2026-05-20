@@ -1,4 +1,5 @@
 import express from "express";
+import type { ErrorRequestHandler } from "express";
 import { logger } from "@repo/logger";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -12,6 +13,7 @@ import { serverRouter, createContext } from "@repo/trpc/server";
 import { env } from "./env";
 
 export const app = express();
+const isProduction = env.NODE_ENV === "prod";
 const openApiDocument = generateOpenApiDocument(serverRouter, {
   title: "Formizo API",
   version: "1.0.0",
@@ -54,6 +56,9 @@ app.use(
   createOpenApiExpressMiddleware({
     router: serverRouter,
     createContext,
+    onError({ error, path, type }) {
+      logger.error("OpenAPI request failed", { error, path, type });
+    },
   }),
 );
 
@@ -62,7 +67,36 @@ app.use(
   trpcExpress.createExpressMiddleware({
     router: serverRouter,
     createContext,
+    onError({ error, path, type }) {
+      logger.error("tRPC request failed", { error, path, type });
+    },
   }),
 );
+
+const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
+  const message = error instanceof Error ? error.message : "Unknown error";
+
+  logger.error("Unhandled HTTP error", {
+    error,
+    method: req.method,
+    url: req.originalUrl,
+  });
+
+  if (res.headersSent) {
+    return;
+  }
+
+  const responseBody: { message: string; stack?: string } = {
+    message: isProduction ? "Internal server error" : message,
+  };
+
+  if (!isProduction && error instanceof Error) {
+    responseBody.stack = error.stack;
+  }
+
+  res.status(500).json(responseBody);
+};
+
+app.use(errorHandler);
 
 export default app;

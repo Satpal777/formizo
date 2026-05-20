@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Braces, FileCode2, LockKeyhole, Mail } from "lucide-react";
 
 type CommandPaletteProps = {
@@ -19,6 +19,23 @@ const fileResults = [
   { name: "create-client.ts", path: "apps\\web\\trpc", icon: FileCode2, color: "text-[#3794ff]" },
 ];
 
+type PaletteItem =
+  | {
+      kind: "command";
+      label: string;
+      meta?: string;
+      onSelect?: () => void;
+      shortcut?: string[];
+    }
+  | {
+      kind: "file";
+      color: string;
+      icon: React.ComponentType<{ className?: string }>;
+      name: string;
+      path: string;
+      recentlyOpened?: boolean;
+    };
+
 export function CommandPalette({
   isAuthenticated,
   isOpen,
@@ -28,6 +45,54 @@ export function CommandPalette({
   const [mode, setMode] = useState<PaletteMode>("commands");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const paletteItems = useMemo<PaletteItem[]>(() => {
+    const commandItems: PaletteItem[] = isAuthenticated
+      ? [{ kind: "command", label: "Authenticated session", meta: "ready" }]
+      : [
+          {
+            kind: "command",
+            label: "Continue with Google",
+            meta: "auth",
+            onSelect: onAuthenticate,
+            shortcut: ["Ctrl", "G"],
+          },
+          {
+            kind: "command",
+            label: "Continue with username and password",
+            meta: "auth",
+            onSelect: () => setMode("credentials"),
+            shortcut: ["Ctrl", "Shift", "P"],
+          },
+        ];
+
+    return [
+      ...commandItems,
+      { kind: "command", label: "Go to File", shortcut: ["Ctrl", "P"] },
+      { kind: "command", label: "Show and Run Commands", meta: ">", shortcut: ["Ctrl", "Shift", "P"] },
+      { kind: "command", label: "Search for Text", meta: "%" },
+      { kind: "command", label: "Open Quick Chat", shortcut: ["Ctrl", "Shift", "Alt", "L"] },
+      { kind: "command", label: "Go to Symbol in Editor", meta: "@", shortcut: ["Ctrl", "Shift", "O"] },
+      { kind: "command", label: "Start Debugging", meta: "debug" },
+      { kind: "command", label: "Run Task", meta: "task" },
+      { kind: "command", label: "More", meta: "?" },
+      ...fileResults.map<PaletteItem>((file, index) => ({
+        kind: "file",
+        color: file.color,
+        icon: file.icon,
+        name: file.name,
+        path: file.path,
+        recentlyOpened: index === 0,
+      })),
+    ];
+  }, [isAuthenticated, onAuthenticate]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveIndex(0);
+    }
+  }, [isOpen, mode]);
 
   if (!isOpen) {
     return null;
@@ -35,7 +100,47 @@ export function CommandPalette({
 
   function handleClose() {
     setMode("commands");
+    setActiveIndex(0);
     onClose();
+  }
+
+  function handleCommandKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (mode !== "commands") {
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((currentIndex) => (currentIndex + 1) % paletteItems.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((currentIndex) => (currentIndex - 1 + paletteItems.length) % paletteItems.length);
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      setActiveIndex(0);
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      setActiveIndex(paletteItems.length - 1);
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const activeItem = paletteItems[activeIndex];
+
+      if (activeItem?.kind === "command") {
+        activeItem.onSelect?.();
+      }
+    }
   }
 
   function handleCredentialsSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -61,6 +166,7 @@ export function CommandPalette({
           <input
             autoFocus
             className="h-full min-w-0 flex-1 bg-transparent text-[16px] text-[#d4d4d4] outline-none placeholder:text-[#777777]"
+            onKeyDown={handleCommandKeyDown}
             placeholder={
               mode === "credentials"
                 ? "Enter username and password"
@@ -72,46 +178,30 @@ export function CommandPalette({
 
         {mode === "commands" ? (
           <div className="pb-1 pt-2 text-[15px]">
-            {isAuthenticated ? (
-              <CommandRow label="Authenticated session" meta="ready" />
-            ) : (
-              <>
+            {paletteItems.map((item, index) =>
+              item.kind === "command" ? (
                 <CommandRow
-                  active
-                  label="Continue with Google"
-                  meta="auth"
-                  onClick={onAuthenticate}
-                  shortcut={["Ctrl", "G"]}
+                  active={index === activeIndex}
+                  key={`${item.kind}-${item.label}`}
+                  label={item.label}
+                  meta={item.meta}
+                  onClick={item.onSelect}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  shortcut={item.shortcut}
                 />
-                <CommandRow
-                  label="Continue with username and password"
-                  meta="auth"
-                  onClick={() => setMode("credentials")}
-                  shortcut={["Ctrl", "Shift", "P"]}
+              ) : (
+                <FileRow
+                  active={index === activeIndex}
+                  color={item.color}
+                  icon={item.icon}
+                  key={`${item.name}-${item.path}`}
+                  name={item.name}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  path={item.path}
+                  recentlyOpened={item.recentlyOpened}
                 />
-              </>
+              ),
             )}
-            <CommandRow label="Go to File" shortcut={["Ctrl", "P"]} />
-            <CommandRow label="Show and Run Commands" meta=">" shortcut={["Ctrl", "Shift", "P"]} />
-            <CommandRow label="Search for Text" meta="%" />
-            <CommandRow label="Open Quick Chat" shortcut={["Ctrl", "Shift", "Alt", "L"]} />
-            <CommandRow label="Go to Symbol in Editor" meta="@" shortcut={["Ctrl", "Shift", "O"]} />
-            <CommandRow label="Start Debugging" meta="debug" />
-            <CommandRow label="Run Task" meta="task" />
-            <CommandRow label="More" meta="?" />
-
-            <div className="mx-2 my-1 h-px bg-[#2b2b2b]" />
-
-            {fileResults.map((file, index) => (
-              <FileRow
-                key={file.name}
-                color={file.color}
-                icon={file.icon}
-                name={file.name}
-                path={file.path}
-                recentlyOpened={index === 0}
-              />
-            ))}
           </div>
         ) : (
           <form className="space-y-3 px-2 pb-3 pt-3" onSubmit={handleCredentialsSubmit}>
@@ -170,12 +260,14 @@ function CommandRow({
   label,
   meta,
   onClick,
+  onMouseEnter,
   shortcut,
 }: {
   active?: boolean;
   label: string;
   meta?: string;
   onClick?: () => void;
+  onMouseEnter?: () => void;
   shortcut?: string[];
 }) {
   return (
@@ -183,8 +275,9 @@ function CommandRow({
       className={`flex h-[28px] w-full items-center gap-2 rounded-[3px] px-4 text-left ${
         active ? "bg-[#2f82a6] text-white" : "text-[#e6e6e6] hover:bg-[#2a2d2e]"
       }`}
-      disabled={!onClick}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      type="button"
     >
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {meta ? <span className="text-[13px] text-[#9d9d9d]">{meta}</span> : null}
@@ -209,20 +302,30 @@ function Shortcut({ keys }: { keys: string[] }) {
 }
 
 function FileRow({
+  active,
   color,
   icon: Icon,
   name,
+  onMouseEnter,
   path,
   recentlyOpened,
 }: {
+  active?: boolean;
   color: string;
   icon: React.ComponentType<{ className?: string }>;
   name: string;
+  onMouseEnter?: () => void;
   path: string;
   recentlyOpened?: boolean;
 }) {
   return (
-    <button className="flex h-[28px] w-full items-center gap-2 rounded-[3px] px-4 text-left text-[#e6e6e6] hover:bg-[#2a2d2e]">
+    <button
+      className={`flex h-[28px] w-full items-center gap-2 rounded-[3px] px-4 text-left ${
+        active ? "bg-[#2f82a6] text-white" : "text-[#e6e6e6] hover:bg-[#2a2d2e]"
+      }`}
+      onMouseEnter={onMouseEnter}
+      type="button"
+    >
       <Icon className={`size-4 shrink-0 ${color}`} />
       <span className="truncate">{name}</span>
       <span className="min-w-0 flex-1 truncate text-[#9d9d9d]">{path}</span>
