@@ -28,6 +28,7 @@ export const signInWithEmailAndPasswordInput = z.object({
 });
 
 export const signInWithEmailAndPasswordOutput = z.object({
+    id: z.string().describe("The id of the signed in user"),
     token: z.string().describe("The authentication token for the signed-in user"),
     refreshToken: z.string().describe("The refresh token for the signed-in user"),
 });

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { success, z } from "zod";
 
 export const createUserWithEmailAndPasswordInput = z.object({
     name: z.string().max(255).describe("The name of the user to create"),
@@ -26,8 +26,8 @@ export const signInWithEmailAndPasswordInput = z.object({
 });
 
 export const signInWithEmailAndPasswordOutput = z.object({
-    token: z.string().describe("The authentication token for the signed-in user"),
-    refreshToken: z.string().describe("The refresh token for the signed-in user"),
+    id: z.string().describe("The id of the signed in user"),
+    success: z.boolean().describe("Whether the sign in was successful"),
 });
 
 export const forgotPasswordInput = z.object({

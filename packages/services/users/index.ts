@@ -266,7 +266,8 @@ export class UserService {
 
         return {
             token,
-            refreshToken
+            refreshToken,
+            id: user.id,
         };
     }
 }
