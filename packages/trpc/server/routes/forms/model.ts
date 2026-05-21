@@ -3,10 +3,19 @@ import { z } from "zod";
 const formStatus = z.enum(["draft", "published", "archived"]);
 const formAccessMode = z.enum(["public", "authenticated"]);
 const formResultVisibility = z.enum(["hidden", "after_submit", "creator_only"]);
+const requiredString = z.string().trim().min(1);
+const optionalString = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  requiredString.optional(),
+);
+const optionalUrl = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  requiredString.url().optional(),
+);
 
 const formValues = {
-  title: z.string().max(255).describe("The title of the form"),
-  description: z.string().describe("The description of the form").optional(),
+  title: requiredString.max(255).describe("The title of the form"),
+  description: requiredString.describe("The description of the form"),
   status: formStatus.describe("The status of the form"),
 
   accessMode: formAccessMode.describe("The access mode of the form"),
@@ -15,7 +24,7 @@ const formValues = {
     .describe("Whether to allow anonymous responses for the form"),
   allowMultipleResponses: z.boolean().describe("Whether to allow multiple responses for the form"),
 
-  password: z.string().describe("The password for the form").optional(),
+  password: optionalString.describe("The password for the form"),
 
   resultVisibility: formResultVisibility.describe("The result visibility of the form"),
 
@@ -26,18 +35,11 @@ const formValues = {
   collectEmail: z.boolean().describe("Whether to collect email addresses from respondents"),
   showProgressBar: z.boolean().describe("Whether to show a progress bar to respondents"),
   shuffleFields: z.boolean().describe("Whether to shuffle the order of fields for each respondent"),
-  redirectUrl: z
-    .string()
-    .url()
-    .describe("The URL to redirect respondents to after form submission")
-    .optional(),
-  thankYouMessage: z
-    .string()
-    .describe("The thank you message to show after form submission")
-    .optional(),
+  redirectUrl: optionalUrl.describe("The URL to redirect respondents to after form submission"),
+  thankYouMessage: optionalString.describe("The thank you message to show after form submission"),
 
   settings: z
-    .record(z.string(), z.any())
+    .record(requiredString, z.any())
     .describe("Additional custom settings for the form")
     .optional(),
 };
@@ -71,13 +73,13 @@ export const createFormProcedureInput = z.object({
 const updateFormValues = z.object(formValues).partial();
 
 export const updateFormInput = updateFormValues.extend({
-  id: z.string().uuid().describe("The id of the form to update"),
+  id: requiredString.uuid().describe("The id of the form to update"),
 });
 
 export const createFormOutput = z.object({
-  id: z.string().describe("The id of the created form"),
+  id: requiredString.describe("The id of the created form"),
 });
 
 export const updateFormOutput = z.object({
-  id: z.string().describe("The id of the updated form"),
+  id: requiredString.describe("The id of the updated form"),
 });

@@ -38,7 +38,6 @@ export class UserService {
     private generateAuthTokens(userId: string) {
         const token = generateJWTToken({ userId }, env.JWT_SECRET!, (env.JWT_EXPIRES_IN as SignOptions["expiresIn"])!);
         const refreshToken = generateJWTToken({ userId }, env.REFRESH_TOKEN_SECRET!, (env.REFRESH_TOKEN_EXPIRES_IN as SignOptions["expiresIn"])!);
-
         return { token, refreshToken };
     }
 

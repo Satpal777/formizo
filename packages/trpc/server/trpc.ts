@@ -3,12 +3,12 @@ import { OpenApiMeta } from "trpc-to-openapi";
 import { verifyJWTToken } from "@repo/services/utils/utils";
 
 import { createContext } from "./context";
+import { env } from "../env";
 
-const nodeEnv = process.env["NODE_ENV"] as string | undefined;
-const isProduction = nodeEnv === "prod" || nodeEnv === "production";
+const isProduction = env.NODE_ENV === "prod" || env.NODE_ENV === "production";
 const INTERNAL_SERVER_ERROR_MESSAGE = "Internal server error";
 type AuthTokenPayload = {
-  id?: string;
+  userId?: string;
 };
 
 export const tRPCContext = initTRPC
@@ -36,7 +36,6 @@ export const router = tRPCContext.router;
 export const publicProcedure = tRPCContext.procedure;
 
 export const protectedProcedure = tRPCContext.procedure.use(({ ctx, next }) => {
-
   const UNAUTHORIZED = "UNAUTHORIZED";
   const UNAUTHORIZED_MESSAGE = "Authentication required";
   const INVALID_AUTH_TOKEN = "Invalid authentication token";
@@ -47,22 +46,22 @@ export const protectedProcedure = tRPCContext.procedure.use(({ ctx, next }) => {
     throw new TRPCError({ code: UNAUTHORIZED, message: UNAUTHORIZED_MESSAGE });
   }
 
-  const decodedToken = verifyJWTToken(token, process.env["JWT_SECRET"] ?? "");
+  const decodedToken = verifyJWTToken(token, env.JWT_SECRET);
 
   if (!decodedToken || typeof decodedToken === "string") {
     throw new TRPCError({ code: UNAUTHORIZED, message: INVALID_AUTH_TOKEN });
   }
 
-  const { id } = decodedToken as AuthTokenPayload;
+  const { userId } = decodedToken as AuthTokenPayload;
 
-  if (!id) {
+  if (!userId) {
     throw new TRPCError({ code: UNAUTHORIZED, message: INVALID_AUTH_TOKEN });
   }
 
   return next({
     ctx: {
       ...ctx,
-      user: { id },
+      user: { id: userId },
     },
   });
 });
