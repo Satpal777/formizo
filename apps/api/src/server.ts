@@ -11,6 +11,7 @@ import { apiReference } from "@scalar/express-api-reference";
 import { serverRouter, createContext } from "@repo/trpc/server";
 
 import { env } from "./env";
+import { createRateLimit } from "./middleware/rate-limit";
 
 export const app = express();
 const isProduction = env.NODE_ENV === "prod";
@@ -19,6 +20,14 @@ const openApiDocument = generateOpenApiDocument(serverRouter, {
   version: "1.0.0",
   baseUrl: env.BASE_URL.concat("/api"),
 });
+
+const apiRateLimit = createRateLimit({
+  enabled: env.RATE_LIMIT_ENABLED,
+  windowMs: env.RATE_LIMIT_WINDOW_MS,
+  max: env.RATE_LIMIT_MAX,
+});
+
+app.set("trust proxy", env.TRUST_PROXY);
 
 if (env.NODE_ENV !== "prod") {
   app.use(
@@ -53,6 +62,7 @@ app.use("/docs", apiReference({ url: "/openapi.json" }));
 
 app.use(
   "/api",
+  apiRateLimit,
   createOpenApiExpressMiddleware({
     router: serverRouter,
     createContext,
@@ -64,6 +74,7 @@ app.use(
 
 app.use(
   "/trpc",
+  apiRateLimit,
   trpcExpress.createExpressMiddleware({
     router: serverRouter,
     createContext,
