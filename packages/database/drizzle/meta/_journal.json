@@ -15,6 +15,27 @@
       "when": 1779211969278,
       "tag": "0001_safe_jasper_sitwell",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779385080356,
+      "tag": "0002_noisy_hammerhead",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779385608152,
+      "tag": "0003_mysterious_lightspeed",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779385708851,
+      "tag": "0004_empty_roland_deschain",
+      "breakpoints": true
     }
   ]
 }

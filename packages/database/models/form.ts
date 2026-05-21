@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid, varchar } from "drizzle-orm/pg-core";
 import { users } from "./user";
 
 export const formStatus = pgEnum("form_status", ["draft", "published", "archived"]);
@@ -45,7 +45,7 @@ export const forms = pgTable("forms", {
 
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
-  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  slug: varchar("slug", { length: 255 }).notNull(),
   status: formStatus("status").notNull().default("draft"),
 
   accessMode: formAccessMode("access_mode").notNull().default("public"),
@@ -71,7 +71,13 @@ export const forms = pgTable("forms", {
   publishedAt: timestamp("published_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, 
+  (table) => {
+    return {
+      uniqueCreateAndSlug: unique("unique_create_and_slug").on(table.creatorId, table.slug),
+    };
+  },
+);
 
 /**
  * Form fields table stores questions and content blocks for a form.
@@ -110,7 +116,13 @@ export const formFieldOptions = pgTable("form_field_options", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+},
+  (table) => {
+    return {
+      uniqueFieldOption: unique("unique_field_option").on(table.fieldId, table.value),
+    };
+  },
+);
 
 /**
  * Form logic rules table stores conditional show/hide/jump behavior.
@@ -129,7 +141,13 @@ export const formLogicRules = pgTable("form_logic_rules", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+},
+  (table) => {
+    return {
+      uniqueSourceOperator: unique("unique_source_operator").on(table.sourceFieldId, table.operator),
+    };
+  },
+);
 
 /**
  * Form responses table stores one submission/session for a form.
@@ -161,7 +179,13 @@ export const formAnswers = pgTable("form_answers", {
   value: jsonb("value").notNull(),
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+},
+  (table) => {
+    return {
+      uniqueResponseField: unique("unique_response_field").on(table.responseId, table.fieldId),
+    };
+  },
+);
 
 export type Form = typeof forms.$inferSelect;
 export type NewForm = typeof forms.$inferInsert;
