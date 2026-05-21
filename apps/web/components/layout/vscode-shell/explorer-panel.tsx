@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
+  FileText,
   FileJson2,
   FilePlus2,
   Folder,
@@ -10,15 +11,15 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import type { FormFile } from "../app-shell";
+import type { ActiveDocument, FormFile } from "../app-shell";
 
 type ExplorerPanelProps = {
-  activeFormId: string | null;
+  activeDocument: ActiveDocument;
   forms: FormFile[];
   isAuthenticated: boolean;
   onCreateForm: (name: string) => void;
+  onSelectDocument: (documentId: ActiveDocument) => void;
   onRequestAuth: () => void;
-  onSelectForm: (id: string) => void;
 };
 
 const projectItems = [
@@ -26,16 +27,15 @@ const projectItems = [
   { label: "responses", icon: Folder, open: false },
   { label: "workflows", icon: Folder, open: false },
   { label: "themes", icon: Folder, open: false },
-  { label: "README.md", icon: Sparkles, file: true },
 ];
 
 export function ExplorerPanel({
-  activeFormId,
+  activeDocument,
   forms,
   isAuthenticated,
   onCreateForm,
+  onSelectDocument,
   onRequestAuth,
-  onSelectForm,
 }: ExplorerPanelProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
@@ -85,19 +85,38 @@ export function ExplorerPanel({
       </div>
 
       <div className="flex-1 overflow-auto pb-3 pt-1 text-[13px]">
+        <TreeFolder label="public" open>
+          <TreeFile
+            active={activeDocument === "welcome.md"}
+            icon={Sparkles}
+            label="welcome.md"
+            onClick={() => onSelectDocument("welcome.md")}
+          />
+          <TreeFile
+            active={activeDocument === "guide.md"}
+            icon={FileText}
+            label="guide.md"
+            onClick={() => onSelectDocument("guide.md")}
+          />
+        </TreeFolder>
+
         <TreeFolder label="forms" open>
           {forms.map((form) => (
             <button
               key={form.id}
               className={`flex h-[24px] w-full items-center gap-1.5 px-8 text-left ${
-                activeFormId === form.id
+                activeDocument === form.id
                   ? "bg-[#04395e] text-white"
                   : "text-[#cccccc] hover:bg-[#2a2d2e]"
               }`}
-              onClick={() => onSelectForm(form.id)}
+              onClick={() => onSelectDocument(form.id)}
             >
               <FileJson2 className="size-4 shrink-0 text-[#3794ff]" />
               <span className="min-w-0 truncate">{form.name}</span>
+              {form.dirty ? <span className="ml-auto size-2 rounded-full bg-white" /> : null}
+              {!form.dirty && form.status === "published" ? (
+                <span className="ml-auto text-[10px] uppercase text-[#89d185]">live</span>
+              ) : null}
             </button>
           ))}
 
@@ -135,13 +154,9 @@ export function ExplorerPanel({
           ) : null}
         </TreeFolder>
 
-        {projectItems.map((item) =>
-          item.file ? (
-            <TreeFile key={item.label} icon={item.icon} label={item.label} />
-          ) : (
-            <TreeFolder key={item.label} label={item.label} open={item.open} />
-          ),
-        )}
+        {projectItems.map((item) => (
+          <TreeFolder key={item.label} label={item.label} open={item.open} />
+        ))}
 
         <TreeFile icon={FileJson2} label="formizo.config.json" />
       </div>
@@ -185,14 +200,24 @@ function TreeFolder({
 }
 
 function TreeFile({
+  active,
   icon: Icon,
   label,
+  onClick,
 }: {
+  active?: boolean;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
+  onClick?: () => void;
 }) {
   return (
-    <button className="flex h-[24px] w-full items-center gap-1.5 px-6 text-left text-[#cccccc] hover:bg-[#2a2d2e]">
+    <button
+      className={`flex h-[24px] w-full items-center gap-1.5 px-6 text-left ${
+        active ? "bg-[#04395e] text-white" : "text-[#cccccc] hover:bg-[#2a2d2e]"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
       <Icon className="size-4 shrink-0 text-[#3794ff]" />
       <span className="min-w-0 truncate">{label}</span>
     </button>

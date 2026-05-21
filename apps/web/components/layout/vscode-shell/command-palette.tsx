@@ -6,6 +6,11 @@ type CommandPaletteProps = {
   isOpen: boolean;
   onAuthenticate: () => void;
   onClose: () => void;
+  onCreateForm: () => void;
+  onOpenGuide: () => void;
+  onOpenWelcome: () => void;
+  onPublishForm: () => void;
+  onSaveDraft: () => void;
 };
 
 type PaletteMode = "commands" | "credentials";
@@ -41,6 +46,11 @@ export function CommandPalette({
   isOpen,
   onAuthenticate,
   onClose,
+  onCreateForm,
+  onOpenGuide,
+  onOpenWelcome,
+  onPublishForm,
+  onSaveDraft,
 }: CommandPaletteProps) {
   const [mode, setMode] = useState<PaletteMode>("commands");
   const [email, setEmail] = useState("");
@@ -69,6 +79,11 @@ export function CommandPalette({
 
     return [
       ...commandItems,
+      { kind: "command", label: "Create New Form", meta: "form", onSelect: onCreateForm },
+      { kind: "command", label: "Open welcome.md", meta: "public", onSelect: onOpenWelcome },
+      { kind: "command", label: "Open guide.md", meta: "public", onSelect: onOpenGuide },
+      { kind: "command", label: "Save Draft", meta: "form", onSelect: onSaveDraft },
+      { kind: "command", label: "Publish Form", meta: "form", onSelect: onPublishForm },
       { kind: "command", label: "Go to File", shortcut: ["Ctrl", "P"] },
       { kind: "command", label: "Show and Run Commands", meta: ">", shortcut: ["Ctrl", "Shift", "P"] },
       { kind: "command", label: "Search for Text", meta: "%" },
@@ -86,7 +101,7 @@ export function CommandPalette({
         recentlyOpened: index === 0,
       })),
     ];
-  }, [isAuthenticated, onAuthenticate]);
+  }, [isAuthenticated, onAuthenticate, onCreateForm, onOpenGuide, onOpenWelcome, onPublishForm, onSaveDraft]);
 
   useEffect(() => {
     if (isOpen) {
@@ -112,6 +127,12 @@ export function CommandPalette({
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setActiveIndex((currentIndex) => (currentIndex + 1) % paletteItems.length);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handleClose();
       return;
     }
 
