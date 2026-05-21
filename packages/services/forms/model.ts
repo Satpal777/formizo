@@ -71,13 +71,9 @@ export const createFormInput = z.object({
 
 const updateFormValues = z.object(formValues).partial();
 
-export const updateFormInput = updateFormValues
-  .extend({
-    id: z.string().uuid().describe("The id of the form to update"),
-  })
-  .refine(({ id: _id, ...values }) => Object.values(values).some((value) => value !== undefined), {
-    message: "At least one form field must be provided",
-  });
+export const updateFormInput = updateFormValues.extend({
+  id: z.string().uuid().describe("The id of the form to update"),
+});
 
 export const createFormOutput = z.object({
   id: z.string().describe("The id of the created form"),

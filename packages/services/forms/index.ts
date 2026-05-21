@@ -57,6 +57,10 @@ function buildFormValues(input: FormValues): FormWriteValues {
   return formValues;
 }
 
+function hasFormValues(values: FormWriteValues) {
+  return Object.keys(values).length > 0;
+}
+
 export class FormsService {
   async createForm(input: CreateFormInput): Promise<CreateFormOutput> {
     const newForm: NewForm = {
@@ -77,8 +81,14 @@ export class FormsService {
 
   async updateForm(input: UpdateFormInput): Promise<UpdateFormOutput> {
     const { id, ...values } = input;
+    const formValues = buildFormValues(values);
+
+    if (!hasFormValues(formValues)) {
+      throw new Error("At least one form field must be provided");
+    }
+
     const updateValues: Partial<NewForm> = {
-      ...buildFormValues(values),
+      ...formValues,
       updatedAt: new Date(),
     };
 
