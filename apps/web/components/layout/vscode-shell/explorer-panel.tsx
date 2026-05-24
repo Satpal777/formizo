@@ -18,8 +18,8 @@ type ExplorerPanelProps = {
   activeDocument: ActiveDocument;
   forms: FormFile[];
   isAuthenticated: boolean;
-  onCreateForm: (name: string) => void;
-  onRenameForm: (formId: string, name: string) => void;
+  onCreateForm: (name: string) => Promise<void>;
+  onRenameForm: (formId: string, name: string) => Promise<void>;
   onSelectDocument: (documentId: ActiveDocument) => void;
   onRequestAuth: () => void;
 };
@@ -54,7 +54,7 @@ export function ExplorerPanel({
     setIsCreating(true);
   }
 
-  function submitForm() {
+  async function submitForm() {
     const trimmedName = draftName.trim();
 
     if (!trimmedName) {
@@ -62,9 +62,9 @@ export function ExplorerPanel({
       return;
     }
 
-    onCreateForm(trimmedName);
-    setDraftName("");
     setIsCreating(false);
+    await onCreateForm(trimmedName);
+    setDraftName("");
   }
 
   function startRenaming(form: FormFile) {
@@ -72,19 +72,20 @@ export function ExplorerPanel({
     setRenameDraftName(form.name);
   }
 
-  function submitRename() {
+  async function submitRename() {
     if (!renamingFormId) {
       return;
     }
 
     const trimmedName = renameDraftName.trim();
 
-    if (trimmedName) {
-      onRenameForm(renamingFormId, trimmedName);
-    }
-
+    const formId = renamingFormId;
     setRenamingFormId(null);
     setRenameDraftName("");
+
+    if (trimmedName) {
+      await onRenameForm(formId, trimmedName);
+    }
   }
 
   return (
@@ -148,7 +149,7 @@ export function ExplorerPanel({
                     onFocus={(event) => event.currentTarget.select()}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
-                        submitRename();
+                        void submitRename();
                       }
 
                       if (event.key === "Escape") {
@@ -205,7 +206,7 @@ export function ExplorerPanel({
                 onFocus={(event) => event.currentTarget.select()}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
-                    submitForm();
+                    void submitForm();
                   }
 
                   if (event.key === "Escape") {

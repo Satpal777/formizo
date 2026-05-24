@@ -25,7 +25,8 @@ type EditorAreaProps = {
   onPublishForm: (formId?: string) => void;
   onSaveDraft: (formId?: string) => void;
   onSelectDocument: (documentId: PublicDocumentId) => void;
-  onRenameForm: (formId: string, name: string) => void;
+  onCommitRenameForm: (formId: string, name: string) => Promise<void>;
+  onRenameForm: (formId: string, name: string) => string | null;
   onUpdateForm: (formId: string, changes: Partial<FormFile>) => void;
 };
 
@@ -132,6 +133,7 @@ export function EditorArea({
   onPublishForm,
   onSaveDraft,
   onSelectDocument,
+  onCommitRenameForm,
   onRenameForm,
   onUpdateForm,
 }: EditorAreaProps) {
@@ -191,6 +193,7 @@ export function EditorArea({
           form={activeForm}
           onPublishForm={onPublishForm}
           onSaveDraft={onSaveDraft}
+          onCommitRenameForm={onCommitRenameForm}
           onRenameForm={onRenameForm}
           onUpdateForm={onUpdateForm}
         />
@@ -302,13 +305,15 @@ function FormEditor({
   form,
   onPublishForm,
   onSaveDraft,
+  onCommitRenameForm,
   onRenameForm,
   onUpdateForm,
 }: {
   form: FormFile;
   onPublishForm: (formId?: string) => void;
   onSaveDraft: (formId?: string) => void;
-  onRenameForm: (formId: string, name: string) => void;
+  onCommitRenameForm: (formId: string, name: string) => Promise<void>;
+  onRenameForm: (formId: string, name: string) => string | null;
   onUpdateForm: (formId: string, changes: Partial<FormFile>) => void;
 }) {
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
@@ -441,6 +446,17 @@ function FormEditor({
     }
   }
 
+  function handleEditorBlur() {
+    const headingMatch = /^#\s+(.+)$/m.exec(editorContent);
+    const headingTitle = headingMatch?.[1]?.trim();
+
+    if (!headingTitle) {
+      return;
+    }
+
+    void onCommitRenameForm(form.id, headingTitle);
+  }
+
   function insertField(suggestionIndex: number) {
     const suggestion = filteredSuggestions[suggestionIndex];
     if (!suggestion) {
@@ -544,6 +560,7 @@ function FormEditor({
           ref={editorRef}
           className="h-[calc(100%-32px)] w-full resize-none bg-[#1e1e1e] px-5 py-4 font-mono text-[13px] leading-6 text-[#d4d4d4] outline-none selection:bg-[#264f78]"
           onChange={handleContentChange}
+          onBlur={handleEditorBlur}
           onKeyDown={handleEditorKeyDown}
           spellCheck={false}
           value={editorContent}

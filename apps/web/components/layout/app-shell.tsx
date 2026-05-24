@@ -162,11 +162,11 @@ export function AppShell() {
     return `${nextHeading}\n\n${content}`.trim();
   }
 
-  async function handleRenameForm(formId: string, name: string, persist = true) {
+  function applyFormRename(formId: string, name: string) {
     const fileName = formatFormName(name);
 
     if (!fileName) {
-      return;
+      return null;
     }
 
     const title = fileName.replace(/\.form$/, "");
@@ -184,7 +184,13 @@ export function AppShell() {
       ),
     );
 
-    if (!persist) {
+    return title;
+  }
+
+  async function handleRenameForm(formId: string, name: string) {
+    const title = applyFormRename(formId, name);
+
+    if (!title) {
       return;
     }
 
@@ -345,7 +351,8 @@ export function AppShell() {
         onPublishForm={handlePublish}
         onSaveDraft={handleSaveDraft}
         onSelectDocument={setActiveDocument}
-        onRenameForm={(formId, name) => void handleRenameForm(formId, name, false)}
+        onCommitRenameForm={handleRenameForm}
+        onRenameForm={applyFormRename}
         onUpdateForm={handleUpdateForm}
       />
       <StatusBar
