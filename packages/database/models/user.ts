@@ -19,9 +19,12 @@ export const users = pgTable("users", {
   verificationTokenExpiresAt: timestamp("verification_token_expires_at", { withTimezone: true }),
 
   forgotPasswordToken: text("forgot_password_token"),
-  forgotPasswordTokenExpiresAt: timestamp("forgot_password_token_expires_at", { withTimezone: true }),
+  forgotPasswordTokenExpiresAt: timestamp("forgot_password_token_expires_at", {
+    withTimezone: true,
+  }),
 
   refreshToken: text("refresh_token"),
+  refreshTokenSalt: text("refresh_token_salt"),
   refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -30,4 +33,3 @@ export const users = pgTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-

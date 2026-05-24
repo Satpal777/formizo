@@ -233,15 +233,25 @@ function FormEditor({
   onUpdateForm: (formId: string, changes: Partial<FormFile>) => void;
 }) {
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
-  const [isSlashOpen, setIsSlashOpen] = useState(false);
+  const [slashPosition, setSlashPosition] = useState<number | null>(null);
+  const [filterText, setFilterText] = useState("");
   const [activeSuggestion, setActiveSuggestion] = useState(0);
   const [editorContent, setEditorContent] = useState(form.content);
 
   const contentLines = useMemo(() => editorContent.split("\n"), [editorContent]);
 
+  const filteredSuggestions = useMemo(() => {
+    if (!filterText) return fieldSuggestions;
+    const lowerFilter = filterText.toLowerCase();
+    return fieldSuggestions.filter(
+      (s) => s.label.toLowerCase().includes(lowerFilter) || s.type.toLowerCase().includes(lowerFilter)
+    );
+  }, [filterText]);
+
   useEffect(() => {
     setEditorContent(form.content);
-    setIsSlashOpen(false);
+    setSlashPosition(null);
+    setFilterText("");
     setActiveSuggestion(0);
   }, [form.id]);
 
@@ -250,8 +260,25 @@ function FormEditor({
     onUpdateForm(form.id, { content, fields });
   }
 
+  function handleContentChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+    const content = event.target.value;
+    const selection = event.target.selectionStart;
+    
+    updateContent(content);
+    
+    if (slashPosition !== null) {
+      if (selection <= slashPosition || /[\s\n]/.test(content.slice(slashPosition + 1, selection))) {
+        setSlashPosition(null);
+        setFilterText("");
+      } else {
+        setFilterText(content.slice(slashPosition + 1, selection));
+        setActiveSuggestion(0);
+      }
+    }
+  }
+
   function insertField(suggestionIndex: number) {
-    const suggestion = fieldSuggestions[suggestionIndex];
+    const suggestion = filteredSuggestions[suggestionIndex];
     if (!suggestion) {
       return;
     }
@@ -268,8 +295,7 @@ function FormEditor({
 
     if (editor) {
       const selectionStart = editor.selectionStart;
-      const slashStart = editorContent.lastIndexOf("/", selectionStart);
-      const replaceStart = slashStart >= 0 ? slashStart : selectionStart;
+      const replaceStart = slashPosition !== null ? slashPosition : (editorContent.lastIndexOf("/", selectionStart) >= 0 ? editorContent.lastIndexOf("/", selectionStart) : selectionStart);
       const prefix = replaceStart > 0 && editorContent[replaceStart - 1] !== "\n" ? "\n" : "";
       const suffix = editorContent.slice(selectionStart, selectionStart + 1) === "\n" ? "" : "\n";
       const value = `${prefix}${insertedText}${suffix}`;
@@ -278,11 +304,12 @@ function FormEditor({
       updateContent(editor.value, nextFields);
       editor.focus();
     } else {
-      const nextContent = `${editorContent.replace(/\/type to add your first field/g, "").trim()}\n\n${insertedText}`.trim();
+      const nextContent = `${editorContent.replace(/<!-- Type '\/' for fields -->/g, "").trim()}\n\n${insertedText}`.trim();
       updateContent(nextContent, nextFields);
     }
 
-    setIsSlashOpen(false);
+    setSlashPosition(null);
+    setFilterText("");
     setActiveSuggestion(0);
   }
 
@@ -299,37 +326,45 @@ function FormEditor({
       return;
     }
 
-    if (event.key === "/" && !isSlashOpen) {
-      setIsSlashOpen(true);
+    if (event.key === "/" && slashPosition === null) {
+      setSlashPosition(editorRef.current?.selectionStart ?? 0);
+      setFilterText("");
       setActiveSuggestion(0);
       return;
     }
 
-    if (!isSlashOpen) {
+    if (slashPosition === null) {
       return;
     }
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setActiveSuggestion((index) => (index + 1) % fieldSuggestions.length);
+      if (filteredSuggestions.length > 0) {
+        setActiveSuggestion((index) => (index + 1) % filteredSuggestions.length);
+      }
       return;
     }
 
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      setActiveSuggestion((index) => (index - 1 + fieldSuggestions.length) % fieldSuggestions.length);
+      if (filteredSuggestions.length > 0) {
+        setActiveSuggestion((index) => (index - 1 + filteredSuggestions.length) % filteredSuggestions.length);
+      }
       return;
     }
 
     if (event.key === "Escape") {
       event.preventDefault();
-      setIsSlashOpen(false);
+      setSlashPosition(null);
+      setFilterText("");
       return;
     }
 
-    if (event.key === "Enter") {
-      event.preventDefault();
-      insertField(activeSuggestion);
+    if (event.key === "Enter" || event.key === "Tab") {
+      if (filteredSuggestions.length > 0) {
+        event.preventDefault();
+        insertField(activeSuggestion);
+      }
     }
   }
 
@@ -343,18 +378,18 @@ function FormEditor({
         <textarea
           ref={editorRef}
           className="h-[calc(100%-32px)] w-full resize-none bg-[#1e1e1e] px-5 py-4 font-mono text-[13px] leading-6 text-[#d4d4d4] outline-none selection:bg-[#264f78]"
-          onChange={(event) => updateContent(event.target.value)}
+          onChange={handleContentChange}
           onKeyDown={handleEditorKeyDown}
           spellCheck={false}
           value={editorContent}
         />
-        {isSlashOpen ? (
+        {slashPosition !== null ? (
           <div className="absolute left-5 top-16 max-h-[228px] w-[244px] overflow-hidden rounded-[5px] border border-[#454545] bg-[#252526] shadow-[0_10px_28px_rgba(0,0,0,0.46)]">
             <div className="border-b border-[#373737] px-2.5 py-1.5 text-[11px] uppercase tracking-wide text-[#9d9d9d]">
-              Add block
+              {filterText ? "Press Enter to select" : "Type '/' for fields"}
             </div>
             <div className="max-h-[194px] overflow-auto p-1">
-            {fieldSuggestions.map((suggestion, index) => (
+            {filteredSuggestions.length > 0 ? filteredSuggestions.map((suggestion, index) => (
               <button
                 className={`flex h-[26px] w-full items-center gap-2 rounded-[3px] px-2 text-left text-[12px] ${
                   index === activeSuggestion ? "bg-[#2f82a6] text-white" : "text-[#d4d4d4] hover:bg-[#2a2d2e]"
@@ -367,7 +402,9 @@ function FormEditor({
                 <ChevronRight className="size-3 shrink-0" />
                 <span className="min-w-0 flex-1 truncate">{suggestion.label}</span>
               </button>
-            ))}
+            )) : (
+              <div className="px-2 py-2 text-center text-[12px] text-[#858585]">No fields found</div>
+            )}
             </div>
           </div>
         ) : null}
@@ -398,7 +435,7 @@ function FormPreview({ form }: { form: FormFile }) {
         <div className="mt-7 space-y-4">
           {form.fields.length === 0 ? (
             <div className="rounded-[6px] border border-dashed border-[#3c3c3c] p-8 text-center text-[13px] text-[#858585]">
-              Type <span className="text-[#d4d4d4]">/</span> in the editor to add your first field.
+              Type <span className="text-[#d4d4d4]">/</span> in the editor for fields.
             </div>
           ) : (
             form.fields.map((field, index) => <PreviewField field={field} index={index} key={field.id} />)

@@ -22,6 +22,8 @@ import {
   getJWTExpiresAt,
   hashPassword,
   hashToken,
+  hashTokenWithSalt,
+  generateSalt,
   tokenGenerator,
   verifyJWTToken,
 } from "../utils/utils";
@@ -88,10 +90,13 @@ export class UserService {
    * @param refreshToken
    */
   private async saveRefreshToken(userId: string, refreshToken: string) {
+    const refreshTokenSalt = generateSalt();
+
     await db
       .update(users)
       .set({
-        refreshToken: hashToken(refreshToken),
+        refreshToken: hashTokenWithSalt(refreshToken, refreshTokenSalt),
+        refreshTokenSalt,
         refreshTokenExpiresAt: getJWTExpiresAt(refreshToken, env.REFRESH_TOKEN_SECRET!),
       })
       .where(eq(users.id, userId));
@@ -135,9 +140,14 @@ export class UserService {
     }
 
     const user = await this.getUserById(userId);
-    const hashedRefreshToken = hashToken(refreshToken);
 
-    if (!user || user.refreshToken !== hashedRefreshToken || !user.refreshTokenExpiresAt) {
+    if (!user || !user.refreshToken || !user.refreshTokenSalt || !user.refreshTokenExpiresAt) {
+      throw new Error(error);
+    }
+
+    const hashedRefreshToken = hashTokenWithSalt(refreshToken, user.refreshTokenSalt);
+
+    if (user.refreshToken !== hashedRefreshToken) {
       throw new Error(error);
     }
 

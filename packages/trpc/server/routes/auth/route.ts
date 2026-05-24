@@ -151,9 +151,10 @@ export const authRouter = router({
     })
     .input(refreshTokenInput)
     .output(refreshTokenOutput)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const { refreshToken } = input;
       const result = await userService.refreshToken({ refreshToken });
+      setAuthCookie(ctx, result.token, result.refreshToken);
       return result;
     }),
 });

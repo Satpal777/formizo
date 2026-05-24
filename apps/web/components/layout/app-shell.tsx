@@ -105,7 +105,7 @@ export function AppShell() {
       dirty: false,
       accessMode: "public",
       resultVisibility: "creator_only",
-      content: `# ${fileName.replace(/\.form$/, "")}\n\n/type to add your first field`,
+      content: `# ${fileName.replace(/\.form$/, "")}\n\n<!-- Type '/' for fields -->`,
       fields: [],
     };
 
