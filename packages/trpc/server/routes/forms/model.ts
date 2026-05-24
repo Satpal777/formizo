@@ -127,7 +127,18 @@ export const formListItem = z.object({
   slug: requiredString.describe("The form slug"),
   status: formStatus.describe("The form status"),
   accessMode: formAccessMode.describe("The access mode of the form"),
+  allowAnonymousResponses: z.boolean().describe("Whether anonymous responses are allowed"),
+  allowMultipleResponses: z.boolean().describe("Whether multiple responses are allowed"),
+  collectEmail: z.boolean().describe("Whether to collect email addresses"),
+  passwordProtected: z.boolean().describe("Whether this form has a password configured"),
   resultVisibility: formResultVisibility.describe("The result visibility of the form"),
+  showAggregateSummary: z.boolean().describe("Whether aggregate summary results are shown"),
+  showCharts: z.boolean().describe("Whether charts are shown"),
+  showIndividualSubmission: z.boolean().describe("Whether individual submissions are shown"),
+  showProgressBar: z.boolean().describe("Whether respondents see a progress bar"),
+  shuffleFields: z.boolean().describe("Whether fields are shuffled for respondents"),
+  redirectUrl: z.string().nullable().describe("The URL to redirect respondents to after submit"),
+  thankYouMessage: z.string().nullable().describe("The thank you message"),
   createdAt: z.date().describe("The form creation date"),
   updatedAt: z.date().describe("The form update date"),
   publishedAt: z.date().nullable().describe("The form publish date"),
@@ -143,6 +154,7 @@ export const getFormFieldsInput = z.object({
 
 export const getPublishedFormBySlugInput = z.object({
   slug: requiredString.describe("The published form slug"),
+  password: optionalString.describe("The form password, when required"),
   viewerUserId: requiredString.uuid().optional().describe("The authenticated respondent id"),
 });
 
@@ -277,6 +289,7 @@ export const getPublishedFormBySlugOutput = z.object({
   form: publishedForm.nullable().describe("The published form, if found"),
   unavailableReason: z
     .enum(["not_found", "auth_required"])
+    .or(z.literal("password_required"))
     .optional()
     .describe("Why the form is unavailable"),
 });
@@ -288,6 +301,7 @@ const submitFormAnswerInput = z.object({
 
 export const submitPublishedFormInput = z.object({
   slug: requiredString.describe("The published form slug"),
+  password: optionalString.describe("The form password, when required"),
   respondentUserId: requiredString.uuid().optional().describe("The authenticated respondent id"),
   respondentEmail: z.string().trim().email().optional().describe("The respondent email"),
   answers: z.array(submitFormAnswerInput).describe("Submitted field answers"),

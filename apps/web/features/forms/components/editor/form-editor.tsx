@@ -5,6 +5,7 @@ import { FieldSettings } from "./field-settings";
 import { FormPreview } from "./form-preview";
 import { getResponseDocumentId } from "../../lib/documents";
 import {
+  buildFormContent,
   fieldSuggestions,
   formatFieldBlock,
   parseFieldsFromContent,
@@ -154,6 +155,24 @@ export function FormEditor({
     setActiveSuggestion(0);
   }
 
+  function reorderFields(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) {
+      return;
+    }
+
+    const nextFields = [...form.fields];
+    const [movedField] = nextFields.splice(fromIndex, 1);
+
+    if (!movedField) {
+      return;
+    }
+
+    nextFields.splice(toIndex, 0, movedField);
+
+    const title = form.name.replace(/\.form$/, "");
+    updateContent(buildFormContent(title, nextFields), nextFields);
+  }
+
   function handleEditorKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
       event.preventDefault();
@@ -266,6 +285,7 @@ export function FormEditor({
           isLoadingSubmissions={submissionsQuery.isLoading}
           onOpenResponses={() => onSelectDocument(getResponseDocumentId(form.id))}
           onRefreshSubmissions={() => submissionsQuery.refetch()}
+          onReorderFields={reorderFields}
           submissions={submissionsQuery.data?.submissions ?? []}
         />
         <FieldSettings form={form} onUpdateForm={onUpdateForm} />

@@ -19,7 +19,9 @@ type PublicFormPageProps = {
 
 export default function PublicFormPage({ params }: PublicFormPageProps) {
   const { slug } = use(params);
-  const formQuery = useGetPublishedFormBySlug(slug);
+  const [formPassword, setFormPassword] = useState("");
+  const [submittedPassword, setSubmittedPassword] = useState<string | undefined>();
+  const formQuery = useGetPublishedFormBySlug(slug, submittedPassword);
   const submitFormMutation = useSubmitPublishedForm();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -55,17 +57,20 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
 
   if (!form) {
     const authRequired = formQuery.data?.unavailableReason === "auth_required";
+    const passwordRequired = formQuery.data?.unavailableReason === "password_required";
 
     return (
       <main className="grid min-h-dvh place-items-center bg-[#181818] px-6 text-[#d4d4d4]">
         <section className="w-full max-w-[520px] rounded-[8px] border border-[#2b2b2b] bg-[#1e1e1e] p-8 text-center">
           <CircleAlert className="mx-auto size-8 text-[#f48771]" />
           <h1 className="mt-4 text-[22px] font-semibold text-white">
-            {authRequired ? "Sign in required" : "Form unavailable"}
+            {authRequired ? "Sign in required" : passwordRequired ? "Password required" : "Form unavailable"}
           </h1>
           <p className="mt-2 text-[13px] leading-6 text-[#9d9d9d]">
             {authRequired
               ? "This form only accepts authenticated responses."
+              : passwordRequired
+                ? "Enter the form password to continue."
               : "This form is not published or the link is no longer valid."}
           </p>
           {authRequired ? (
@@ -76,6 +81,29 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
             >
               Sign in to continue
             </button>
+          ) : null}
+          {passwordRequired ? (
+            <form
+              className="mt-5 flex gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setSubmittedPassword(formPassword);
+              }}
+            >
+              <input
+                className="h-10 min-w-0 flex-1 rounded-[5px] border border-[#3c3c3c] bg-[#181818] px-3 text-[13px] text-white outline-none focus:border-[#3794ff]"
+                onChange={(event) => setFormPassword(event.target.value)}
+                placeholder="Form password"
+                type="password"
+                value={formPassword}
+              />
+              <button
+                className="h-10 rounded-[5px] bg-[#0e639c] px-4 text-[13px] font-medium text-white hover:bg-[#1177bb]"
+                type="submit"
+              >
+                Continue
+              </button>
+            </form>
           ) : null}
         </section>
         <AuthModal
@@ -149,6 +177,7 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
               const respondentEmail = formData.get("respondentEmail");
               const response = await submitFormMutation.mutateAsync({
                 slug,
+                password: submittedPassword,
                 respondentEmail: typeof respondentEmail === "string" && respondentEmail
                   ? respondentEmail
                   : undefined,

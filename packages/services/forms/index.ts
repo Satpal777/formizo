@@ -35,7 +35,7 @@ import {
   type NewFormField,
   type NewFormResponse,
 } from "@repo/database/models/form";
-import { generatePasswordHash } from "../utils/utils";
+import { generatePasswordHash, hashPassword } from "../utils/utils";
 
 function createSlug(title: string) {
   const slug = title
@@ -202,7 +202,18 @@ export class FormsService {
         slug: forms.slug,
         status: forms.status,
         accessMode: forms.accessMode,
+        allowAnonymousResponses: forms.allowAnonymousResponses,
+        allowMultipleResponses: forms.allowMultipleResponses,
+        collectEmail: forms.collectEmail,
+        passwordHash: forms.passwordHash,
         resultVisibility: forms.resultVisibility,
+        showAggregateSummary: forms.showAggregateSummary,
+        showCharts: forms.showCharts,
+        showIndividualSubmission: forms.showIndividualSubmission,
+        showProgressBar: forms.showProgressBar,
+        shuffleFields: forms.shuffleFields,
+        redirectUrl: forms.redirectUrl,
+        thankYouMessage: forms.thankYouMessage,
         createdAt: forms.createdAt,
         updatedAt: forms.updatedAt,
         publishedAt: forms.publishedAt,
@@ -211,7 +222,12 @@ export class FormsService {
       .where(eq(forms.creatorId, input.userId))
       .orderBy(desc(forms.updatedAt));
 
-    return { forms: userForms };
+    return {
+      forms: userForms.map(({ passwordHash, ...form }) => ({
+        ...form,
+        passwordProtected: Boolean(passwordHash),
+      })),
+    };
   }
 
   async getFormFields(input: GetFormFieldsInput): Promise<GetFormFieldsOutput> {
@@ -300,6 +316,8 @@ export class FormsService {
         shuffleFields: forms.shuffleFields,
         redirectUrl: forms.redirectUrl,
         thankYouMessage: forms.thankYouMessage,
+        passwordHash: forms.passwordHash,
+        passwordSalt: forms.passwordSalt,
       })
       .from(forms)
       .where(and(eq(forms.slug, input.slug), eq(forms.status, "published")));
@@ -315,9 +333,18 @@ export class FormsService {
       return { form: null, unavailableReason: "auth_required" };
     }
 
+    const requiresPassword = Boolean(form.passwordHash && form.passwordSalt);
+
+    if (
+      requiresPassword &&
+      (!input.password || hashPassword(input.password, form.passwordSalt ?? "") !== form.passwordHash)
+    ) {
+      return { form: null, unavailableReason: "password_required" };
+    }
+
     return {
       form: {
-        ...form,
+        ...(({ passwordHash: _passwordHash, passwordSalt: _passwordSalt, ...safeForm }) => safeForm)(form),
         fields: await getFieldsWithOptions(form.id),
       },
     };
@@ -336,6 +363,8 @@ export class FormsService {
         collectEmail: forms.collectEmail,
         redirectUrl: forms.redirectUrl,
         thankYouMessage: forms.thankYouMessage,
+        passwordHash: forms.passwordHash,
+        passwordSalt: forms.passwordSalt,
       })
       .from(forms)
       .where(and(eq(forms.slug, input.slug), eq(forms.status, "published")));
@@ -349,6 +378,14 @@ export class FormsService {
 
     if (requiresAuth && !input.respondentUserId) {
       throw new Error("Authentication is required to submit this form");
+    }
+
+    if (
+      form.passwordHash &&
+      form.passwordSalt &&
+      (!input.password || hashPassword(input.password, form.passwordSalt) !== form.passwordHash)
+    ) {
+      throw new Error("A valid form password is required");
     }
 
     if (form.collectEmail && !input.respondentEmail) {

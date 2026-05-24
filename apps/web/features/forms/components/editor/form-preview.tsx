@@ -1,4 +1,5 @@
-import { CheckCircle2, ClipboardList, Copy, ExternalLink, Eye, ListChecks, RefreshCw } from "lucide-react";
+import { CheckCircle2, ClipboardList, Copy, ExternalLink, GripVertical, Eye, ListChecks, RefreshCw } from "lucide-react";
+import { useState, type DragEvent } from "react";
 import { toast } from "sonner";
 
 import type { FormField, FormFile } from "../../types";
@@ -21,15 +22,18 @@ export function FormPreview({
   isLoadingSubmissions,
   onOpenResponses,
   onRefreshSubmissions,
+  onReorderFields,
   submissions,
 }: {
   form: FormFile;
   isLoadingSubmissions: boolean;
   onOpenResponses: () => void;
   onRefreshSubmissions: () => void;
+  onReorderFields: (fromIndex: number, toIndex: number) => void;
   submissions: SubmissionItem[];
 }) {
   const publicUrl = getPublicFormUrl(form);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   async function copyPublicUrl() {
     if (!publicUrl) {
@@ -99,7 +103,23 @@ export function FormPreview({
               Type <span className="text-[#d4d4d4]">/</span> in the editor for fields.
             </div>
           ) : (
-            form.fields.map((field, index) => <PreviewField field={field} index={index} key={field.id} />)
+            form.fields.map((field, index) => (
+              <PreviewField
+                dragged={draggedIndex === index}
+                field={field}
+                index={index}
+                key={field.id}
+                onDragEnd={() => setDraggedIndex(null)}
+                onDragOver={(event) => event.preventDefault()}
+                onDragStart={() => setDraggedIndex(index)}
+                onDrop={() => {
+                  if (draggedIndex !== null) {
+                    onReorderFields(draggedIndex, index);
+                  }
+                  setDraggedIndex(null);
+                }}
+              />
+            ))
           )}
         </div>
         {form.fields.length > 0 ? (
@@ -143,11 +163,35 @@ export function FormPreview({
   );
 }
 
-function PreviewField({ field, index }: { field: FormField; index: number }) {
+function PreviewField({
+  dragged,
+  field,
+  index,
+  onDragEnd,
+  onDragOver,
+  onDragStart,
+  onDrop,
+}: {
+  dragged: boolean;
+  field: FormField;
+  index: number;
+  onDragEnd: () => void;
+  onDragOver: (event: DragEvent) => void;
+  onDragStart: () => void;
+  onDrop: () => void;
+}) {
   if (field.type === "statement") {
     return (
-      <div className="rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4">
+      <div
+        className={`rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4 ${dragged ? "opacity-50" : ""}`}
+        draggable
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver}
+        onDragStart={onDragStart}
+        onDrop={onDrop}
+      >
         <div className="flex items-center gap-2 text-[14px] font-semibold text-white">
+          <GripVertical className="size-4 cursor-grab text-[#858585]" />
           <CheckCircle2 className="size-4 text-[#89d185]" />
           {field.title}
         </div>
@@ -156,8 +200,16 @@ function PreviewField({ field, index }: { field: FormField; index: number }) {
   }
 
   return (
-    <label className="block rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4">
+    <label
+      className={`block rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4 ${dragged ? "opacity-50" : ""}`}
+      draggable
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDragStart={onDragStart}
+      onDrop={onDrop}
+    >
       <span className="mb-3 flex items-center gap-2 text-[14px] font-medium text-white">
+        <GripVertical className="size-4 cursor-grab text-[#858585]" />
         <ListChecks className="size-4 text-[#3794ff]" />
         {index + 1}. {field.title}
       </span>
@@ -179,4 +231,3 @@ function PreviewField({ field, index }: { field: FormField; index: number }) {
     </label>
   );
 }
-

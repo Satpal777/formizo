@@ -32,9 +32,9 @@ export function useGetFormSubmissions(formId: string | null, enabled: boolean) {
   );
 }
 
-export function useGetPublishedFormBySlug(slug: string) {
+export function useGetPublishedFormBySlug(slug: string, password?: string) {
   return trpc.forms.getPublishedFormBySlug.useQuery(
-    { slug },
+    { slug, password },
     {
       enabled: Boolean(slug),
       retry: false,

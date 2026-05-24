@@ -10,6 +10,19 @@ export type FormFile = {
   lastUpdatedAt?: Date | string;
   accessMode: "public" | "authenticated";
   resultVisibility: "hidden" | "after_submit" | "creator_only";
+  allowAnonymousResponses: boolean;
+  allowMultipleResponses: boolean;
+  collectEmail: boolean;
+  description?: string;
+  password?: string;
+  passwordProtected: boolean;
+  redirectUrl?: string;
+  showAggregateSummary: boolean;
+  showCharts: boolean;
+  showIndividualSubmission: boolean;
+  showProgressBar: boolean;
+  shuffleFields: boolean;
+  thankYouMessage?: string;
 };
 
 export type FormFieldType =
@@ -44,4 +57,3 @@ export type FormField = {
 
 export type PublicDocumentId = "welcome.md" | "guide.md";
 export type ActiveDocument = PublicDocumentId | string;
-
