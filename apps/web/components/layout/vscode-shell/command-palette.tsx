@@ -82,6 +82,7 @@ export function CommandPalette({
       { kind: "command", label: "Create New Form", meta: "form", onSelect: onCreateForm },
       { kind: "command", label: "Open welcome.md", meta: "public", onSelect: onOpenWelcome },
       { kind: "command", label: "Open guide.md", meta: "public", onSelect: onOpenGuide },
+      { kind: "command", label: "Show Pricing & Plans", meta: "public", onSelect: () => { window.location.href = "/pricing"; } },
       { kind: "command", label: "Save Draft", meta: "form", onSelect: onSaveDraft },
       { kind: "command", label: "Publish Form", meta: "form", onSelect: onPublishForm },
       { kind: "command", label: "Go to File", shortcut: ["Ctrl", "P"] },

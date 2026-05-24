@@ -1,4 +1,5 @@
-import { Sparkles } from "lucide-react";
+import { Sparkles, Check, X } from "lucide-react";
+import Link from "next/link";
 
 export function WelcomeDocument({
   isAuthenticated,
@@ -50,6 +51,12 @@ export function WelcomeDocument({
           >
             Open guide.md
           </button>
+          <Link
+            href="/pricing"
+            className="flex h-9 items-center justify-center rounded-[4px] border border-[#3c3c3c] px-4 text-[13px] text-[#d4d4d4] hover:bg-[#2a2d2e] hover:text-white"
+          >
+            View Pricing & Plans
+          </Link>
         </div>
       </div>
     </div>
@@ -94,4 +101,120 @@ export function GuideDocument() {
     </div>
   );
 }
+
+export function PricingDocument() {
+  return (
+    <div className="h-[calc(100%-72px)] overflow-auto px-10 py-8">
+      <div className="max-w-4xl">
+        <h1 className="text-[24px] font-semibold text-[#d4d4d4] border-b border-[#2b2b2b] pb-2 flex items-center gap-2">
+          # Formizo Pricing Plans
+        </h1>
+        <p className="mt-4 text-[14px] leading-7 text-[#b7b7b7]">
+          Markdown-backed forms. Simple, predictable pricing plans tailored for developers.
+        </p>
+
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
+          {/* Developer Free Plan Card */}
+          <div className="rounded-[6px] border border-[#2b2b2b] bg-[#252526] p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-white flex items-center gap-2">
+                ## Developer Free
+              </h2>
+              <span className="rounded bg-[#3c3c3c] px-2 py-0.5 text-[10px] font-medium text-[#cccccc]">
+                Active
+              </span>
+            </div>
+            <p className="mt-2 text-[12px] text-[#9d9d9d]">For hobbyists & simple form creation.</p>
+            <div className="mt-4 text-[24px] font-bold text-white">$0 <span className="text-[12px] font-normal text-[#858585]">/ forever</span></div>
+            <ul className="mt-5 space-y-2.5 text-[12px] text-[#b7b7b7]">
+              <li className="flex items-center gap-2">
+                <Check className="size-3.5 text-[#89d185]" /> Up to 10 active forms
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="size-3.5 text-[#89d185]" /> 100 submissions / month
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="size-3.5 text-[#89d185]" /> 5MB max file upload size
+              </li>
+              <li className="flex items-center gap-2 flex-wrap">
+                <Check className="size-3.5 text-[#89d185]" /> Formizo branding badge
+              </li>
+            </ul>
+          </div>
+
+          {/* Pro Plan Card */}
+          <div className="rounded-[6px] border border-[#0078d4]/40 bg-[#1e1e1e] p-5 shadow-[0_0_15px_rgba(0,120,212,0.1)]">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-white flex items-center gap-2">
+                ## Pro Plan
+              </h2>
+              <span className="rounded bg-[#0078d4]/20 border border-[#0078d4]/30 px-2 py-0.5 text-[10px] font-medium text-[#3794ff]">
+                Recommended
+              </span>
+            </div>
+            <p className="mt-2 text-[12px] text-[#9d9d9d]">For teams wanting white-label & custom domains.</p>
+            <div className="mt-4 text-[24px] font-bold text-white">$15 <span className="text-[12px] font-normal text-[#858585]">/ mo (billed yearly)</span></div>
+            <ul className="mt-5 space-y-2.5 text-[12px] text-[#b7b7b7]">
+              <li className="flex items-center gap-2">
+                <Check className="size-3.5 text-[#89d185]" /> Unlimited active forms
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="size-3.5 text-[#89d185]" /> Unlimited submissions
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="size-3.5 text-[#89d185]" /> 1GB max file upload size
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="size-3.5 text-[#89d185]" /> Remove Formizo branding
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="size-3.5 text-[#89d185]" /> Webhook & API integration
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="size-3.5 text-[#89d185]" /> Custom domains support
+              </li>
+            </ul>
+            <div className="mt-6">
+              <Link
+                href="/pricing"
+                className="flex w-full justify-center rounded-[4px] bg-[#0e639c] py-2 text-[12px] font-medium text-white hover:bg-[#1177bb]"
+              >
+                Go to Pricing Page
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature list table block */}
+        <h2 className="mt-10 text-[18px] font-semibold text-[#d4d4d4] border-b border-[#2b2b2b] pb-2">
+          ## Feature Comparison
+        </h2>
+        <div className="mt-6 overflow-hidden rounded-[6px] border border-[#2b2b2b] text-[12px]">
+          <div className="grid grid-cols-[180px_1fr_1fr] bg-[#252526] border-b border-[#2b2b2b] px-4 py-2 text-white font-semibold">
+            <div>Feature</div>
+            <div>Free</div>
+            <div>Pro</div>
+          </div>
+          {[
+            ["Active Forms", "10 forms", "Unlimited"],
+            ["Monthly Submissions", "100 / mo", "Unlimited"],
+            ["Max File Upload Size", "5 MB", "1 GB"],
+            ["Custom Branding", "Formizo Badge", "White-labeled"],
+            ["Webhooks & API", "No", "Unlimited endpoints"],
+            ["Custom Domains", "No", "Yes (forms.domain.com)"],
+            ["Password Protection", "No", "Yes"],
+            ["Support", "Discord", "24/7 Priority Support"],
+          ].map(([feature, free, pro]) => (
+            <div key={feature} className="grid grid-cols-[180px_1fr_1fr] border-b border-[#2b2b2b] last:border-b-0 px-4 py-2.5">
+              <div className="text-white font-medium">{feature}</div>
+              <div className="text-[#9d9d9d]">{free}</div>
+              <div className="text-[#d4d4d4] font-semibold">{pro}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 

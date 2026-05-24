@@ -134,6 +134,12 @@ export function ExplorerPanel({
             label="guide.md"
             onClick={() => onSelectDocument("guide.md")}
           />
+          <TreeFile
+            active={activeDocument === "pricing.md"}
+            icon={FileText}
+            label="pricing.md"
+            onClick={() => onSelectDocument("pricing.md")}
+          />
         </TreeFolder>
 
         <TreeFolder label="forms" open>

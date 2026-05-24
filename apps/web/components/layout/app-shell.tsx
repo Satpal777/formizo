@@ -49,6 +49,7 @@ export function AppShell() {
   const [forms, setForms] = useState<FormFile[]>([]);
   const [activeDocument, setActiveDocument] = useState<ActiveDocument>("welcome.md");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<"free" | "pro">("free");
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isExplorerCollapsed, setIsExplorerCollapsed] = useState(false);
@@ -68,6 +69,23 @@ export function AppShell() {
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const savedPlan = localStorage.getItem("formizo_plan");
+    if (savedPlan === "pro" || savedPlan === "free") {
+      setCurrentPlan(savedPlan);
+    }
+
+    function handleStorageChange() {
+      const plan = localStorage.getItem("formizo_plan");
+      if (plan === "pro" || plan === "free") {
+        setCurrentPlan(plan);
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   useEffect(() => {
@@ -630,7 +648,11 @@ export function AppShell() {
 
   return (
     <main className="grid h-dvh min-h-[620px] grid-rows-[36px_minmax(0,1fr)_22px] overflow-hidden bg-[#1e1e1e] text-[12px] text-[#cccccc]">
-      <TitleBar onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} />
+      <TitleBar
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        currentPlan={currentPlan}
+        onSelectDocument={setActiveDocument}
+      />
       <div className="col-span-3 flex min-h-0 w-full min-w-0 overflow-hidden">
         <div className="w-12 shrink-0">
           <ActivityBar

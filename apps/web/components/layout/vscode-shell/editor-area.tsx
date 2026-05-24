@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import { VsCodeLogo } from "./vscode-logo";
-import { GuideDocument, WelcomeDocument } from "~/features/forms/components/documents/public-documents";
+import { GuideDocument, WelcomeDocument, PricingDocument } from "~/features/forms/components/documents/public-documents";
 import { ResponseDocument } from "~/features/forms/components/documents/response-document";
 import { FormEditor } from "~/features/forms/components/editor/form-editor";
 import { FormSettingsView } from "~/features/forms/components/editor/form-settings-view";
@@ -93,6 +93,8 @@ export function EditorArea({
         <ResponseDocument form={activeResponseForm} />
       ) : activeDocument === "guide.md" ? (
         <GuideDocument />
+      ) : activeDocument === "pricing.md" ? (
+        <PricingDocument />
       ) : (
         <WelcomeDocument
           isAuthenticated={isAuthenticated}

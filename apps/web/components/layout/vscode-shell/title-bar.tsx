@@ -5,15 +5,45 @@ import {
   PanelBottom,
   PanelLeft,
   PanelRight,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 
 import { VsCodeLogo } from "./vscode-logo";
 
-export function TitleBar({ onOpenCommandPalette }: { onOpenCommandPalette: () => void }) {
+export function TitleBar({
+  onOpenCommandPalette,
+  currentPlan = "free",
+  onSelectDocument,
+}: {
+  onOpenCommandPalette: () => void;
+  currentPlan?: "free" | "pro";
+  onSelectDocument?: (docId: string) => void;
+}) {
   return (
     <header className="col-span-3 grid grid-cols-[345px_minmax(280px,585px)_1fr] items-center border-b border-[#2b2b2b] bg-[#181818] px-2.5 text-[#cccccc]">
       <div className="flex items-center gap-2.5">
         <VsCodeLogo className="size-4 shrink-0" />
+        <span className="text-[11px] font-semibold text-[#858585]">Formizo</span>
+        {currentPlan === "pro" ? (
+          <button
+            onClick={() => onSelectDocument?.("pricing.md")}
+            className="flex items-center gap-1 rounded-full border border-[#0078d4]/40 bg-[#0078d4]/10 px-2.5 py-0.5 text-[9px] font-medium text-[#3794ff] hover:bg-[#0078d4]/20 transition cursor-pointer"
+            title="Active: Pro Plan. Click to view pricing."
+          >
+            <Sparkles className="size-3 text-[#3794ff]" />
+            <span>Pro Plan</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => onSelectDocument?.("pricing.md")}
+            className="flex items-center gap-1 rounded-full border border-[#2b2b2b] bg-[#2d2d30] px-2.5 py-0.5 text-[9px] font-medium text-[#cccccc] hover:bg-[#3c3c3c] transition cursor-pointer"
+            title="Active: Developer Plan. Click to upgrade."
+          >
+            <Zap className="size-3 text-[#9d9d9d]" />
+            <span>Developer Plan</span>
+          </button>
+        )}
       </div>
 
       <div className="flex min-w-0 items-center gap-3">
