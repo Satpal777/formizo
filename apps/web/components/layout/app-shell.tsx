@@ -699,6 +699,13 @@ export function AppShell() {
             onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
             activeTab={activeSidebarTab}
             onTabChange={setActiveSidebarTab}
+            currentPlan={currentPlan}
+            onSelectDocument={setActiveDocument}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onSignOut={() => {
+              setIsAuthenticated(false);
+              toast.success("Signed out successfully");
+            }}
           />
         </div>
         <div className="min-w-0 flex-1 overflow-hidden">

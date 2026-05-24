@@ -1,3 +1,4 @@
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Blocks,
   Bug,
@@ -8,6 +9,11 @@ import {
   Search,
   Settings,
   UserCircle,
+  Sparkles,
+  Zap,
+  Shield,
+  LogOut,
+  LogIn,
 } from "lucide-react";
 
 const topItems = [
@@ -24,11 +30,19 @@ export function ActivityBar({
   onOpenCommandPalette,
   activeTab = "Explorer",
   onTabChange,
+  currentPlan = "free",
+  onSelectDocument,
+  onOpenAuth,
+  onSignOut,
 }: {
   isAuthenticated: boolean;
   onOpenCommandPalette: () => void;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
+  currentPlan?: "free" | "pro";
+  onSelectDocument?: (docId: string) => void;
+  onOpenAuth?: () => void;
+  onSignOut?: () => void;
 }) {
   return (
     <nav className="flex h-full flex-col items-center border-r border-[#2b2b2b] bg-[#181818]">
@@ -61,21 +75,88 @@ export function ActivityBar({
       </div>
 
       <div className="mb-2.5 flex flex-col items-center gap-1.5">
-        <button
-          aria-label="Accounts"
-          className="group relative grid size-8 place-items-center text-[#9d9d9d] transition hover:text-white"
-          onClick={onOpenCommandPalette}
-        >
-          <UserCircle className="size-6" strokeWidth={1.6} />
-          {!isAuthenticated ? (
-            <span className="pointer-events-none absolute bottom-0 left-10 z-20 hidden w-[235px] rounded-[4px] border border-[#454545] bg-[#252526] p-3 text-left text-[12px] leading-5 text-[#d4d4d4] shadow-2xl group-hover:block">
-              <span className="block font-semibold text-white">Sign in to create forms</span>
-              <span className="mt-1 block">1. Press Ctrl + K</span>
-              <span className="block">2. Choose Continue with Google</span>
-              <span className="block">3. Or continue with username and password</span>
-            </span>
-          ) : null}
-        </button>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              aria-label="Accounts"
+              className="grid size-8 place-items-center text-[#9d9d9d] hover:text-white transition cursor-pointer outline-none"
+            >
+              <UserCircle className="size-6" strokeWidth={1.6} />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="start"
+              side="right"
+              sideOffset={12}
+              alignOffset={-4}
+              className="z-50 min-w-[220px] overflow-hidden rounded-[4px] border border-[#3c3c3c] bg-[#252526] p-1 shadow-[0_10px_30px_rgba(0,0,0,0.5)] focus:outline-none text-[12px] text-[#cccccc]"
+            >
+              {isAuthenticated ? (
+                <>
+                  <div className="px-2.5 py-2 border-b border-[#2b2b2b]">
+                    <div className="font-semibold text-white">Developer Session</div>
+                    <div className="text-[10px] text-[#858585] mt-0.5">developer@formizo.dev</div>
+                  </div>
+                  
+                  <div className="px-2.5 py-1.5 flex items-center justify-between text-[11px] text-[#858585] border-b border-[#2b2b2b]">
+                    <span>Current Plan</span>
+                    {currentPlan === "pro" ? (
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#0078d4]/20 border border-[#0078d4]/30 text-[#3794ff] text-[9px] font-semibold">
+                        <Sparkles className="size-2.5" />
+                        Pro Plan
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#2d2d30] border border-[#3c3c3c] text-[#cccccc] text-[9px] font-semibold">
+                        <Zap className="size-2.5" />
+                        Free Plan
+                      </span>
+                    )}
+                  </div>
+
+                  <DropdownMenu.Item
+                    onClick={() => onSelectDocument?.("pricing.md")}
+                    className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#04395e] hover:text-white cursor-pointer rounded-[2px] outline-none"
+                  >
+                    <Shield className="size-3.5" />
+                    <span>Manage Subscription...</span>
+                  </DropdownMenu.Item>
+
+                  <DropdownMenu.Item
+                    onClick={onSignOut}
+                    className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#04395e] hover:text-white cursor-pointer rounded-[2px] outline-none text-[#f48771] hover:text-white"
+                  >
+                    <LogOut className="size-3.5" />
+                    <span>Sign Out (developer)</span>
+                  </DropdownMenu.Item>
+                </>
+              ) : (
+                <>
+                  <div className="px-2.5 py-2 border-b border-[#2b2b2b]">
+                    <div className="font-semibold text-white">Guest User</div>
+                    <div className="text-[10px] text-[#858585] mt-0.5">Sign in to sync your forms</div>
+                  </div>
+
+                  <DropdownMenu.Item
+                    onClick={onOpenAuth}
+                    className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#04395e] hover:text-white cursor-pointer rounded-[2px] outline-none"
+                  >
+                    <LogIn className="size-3.5" />
+                    <span>Sign In to Sync Settings...</span>
+                  </DropdownMenu.Item>
+                  
+                  <DropdownMenu.Item
+                    onClick={() => onSelectDocument?.("pricing.md")}
+                    className="flex items-center gap-2 px-2.5 py-2 hover:bg-[#04395e] hover:text-white cursor-pointer rounded-[2px] outline-none"
+                  >
+                    <Sparkles className="size-3.5" />
+                    <span>View Pricing & Plans...</span>
+                  </DropdownMenu.Item>
+                </>
+              )}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
         <button aria-label="Settings" className="grid size-8 place-items-center text-[#9d9d9d]">
           <Settings className="size-[22px]" strokeWidth={1.6} />
         </button>
