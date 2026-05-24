@@ -90,7 +90,7 @@ export function ExplorerPanel({
   }
 
   return (
-    <aside className="row-span-2 flex min-w-0 flex-col border-r border-[#2b2b2b] bg-[#181818]">
+    <aside className="flex h-full min-w-0 flex-col border-r border-[#2b2b2b] bg-[#181818]">
       <div className="flex h-[34px] items-center justify-between px-5 text-[11px] uppercase text-white">
         <span>Explorer</span>
         <MoreHorizontal className="size-3.5 text-[#cccccc]" />

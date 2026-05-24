@@ -53,7 +53,7 @@ export function FormPreview({
   }
 
   return (
-    <div className="min-w-0 overflow-auto bg-[#181818]">
+    <div className="h-full min-w-0 overflow-auto bg-[#181818]">
       <div className="flex h-8 items-center justify-between border-b border-[#2b2b2b] px-4 text-[12px] text-[#9d9d9d]">
         <span className="flex items-center gap-1.5">
           <Eye className="size-3.5" />

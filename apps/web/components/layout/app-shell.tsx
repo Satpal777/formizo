@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Group,
+  Panel,
+  Separator,
+  type PanelImperativeHandle,
+} from "react-resizable-panels";
 import { toast } from "sonner";
 
 import { ActivityBar } from "./vscode-shell/activity-bar";
@@ -29,6 +36,7 @@ import {
 } from "~/hooks/api/use-forms";
 
 export function AppShell() {
+  const explorerPanelRef = useRef<PanelImperativeHandle>(null);
   const meQuery = useMe();
   const isMeAuthenticated = meQuery.data?.authenticated === true;
   const formsQuery = useGetFormsByUserId(isMeAuthenticated);
@@ -43,6 +51,7 @@ export function AppShell() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isExplorerCollapsed, setIsExplorerCollapsed] = useState(false);
   const activeResponseFormId = getResponseFormId(activeDocument);
   const activeFormId = activeDocument.endsWith(".md") || activeResponseFormId ? null : activeDocument;
   const formFieldsQuery = useGetFormFields(activeFormId, isMeAuthenticated);
@@ -602,35 +611,88 @@ export function AppShell() {
     ? forms.find((form) => form.id === activeResponseFormId) ?? null
     : null;
 
+  function toggleExplorerPanel() {
+    const panel = explorerPanelRef.current;
+
+    if (!panel) {
+      return;
+    }
+
+    if (panel.isCollapsed()) {
+      panel.expand();
+      setIsExplorerCollapsed(false);
+      return;
+    }
+
+    panel.collapse();
+    setIsExplorerCollapsed(true);
+  }
+
   return (
-    <main className="grid h-dvh min-h-[620px] grid-cols-[48px_300px_minmax(0,1fr)] grid-rows-[36px_minmax(0,1fr)_22px] overflow-hidden bg-[#1e1e1e] text-[12px] text-[#cccccc]">
+    <main className="grid h-dvh min-h-[620px] grid-rows-[36px_minmax(0,1fr)_22px] overflow-hidden bg-[#1e1e1e] text-[12px] text-[#cccccc]">
       <TitleBar onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} />
-      <ActivityBar
-        isAuthenticated={isAuthenticated}
-        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-      />
-      <ExplorerPanel
-        activeDocument={activeDocument}
-        forms={forms}
-        isAuthenticated={isAuthenticated}
-        onCreateForm={handleCreateForm}
-        onRenameForm={handleRenameForm}
-        onSelectDocument={setActiveDocument}
-        onRequestAuth={() => setIsAuthModalOpen(true)}
-      />
-      <EditorArea
-        activeDocument={activeDocument}
-        activeForm={activeForm}
-        activeResponseForm={activeResponseForm}
-        isAuthenticated={isAuthenticated}
-        onCreateForm={handleCreateFormFromCommand}
-        onPublishForm={handlePublish}
-        onSaveDraft={handleSaveDraft}
-        onSelectDocument={setActiveDocument}
-        onCommitRenameForm={handleRenameForm}
-        onRenameForm={applyFormRename}
-        onUpdateForm={handleUpdateForm}
-      />
+      <div className="col-span-3 flex min-h-0 w-full min-w-0 overflow-hidden">
+        <div className="w-12 shrink-0">
+          <ActivityBar
+            isAuthenticated={isAuthenticated}
+            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          />
+        </div>
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <Group className="h-full w-full min-w-0" orientation="horizontal">
+            <Panel
+              className="h-full min-w-0"
+              collapsible
+              collapsedSize={0}
+              defaultSize="300px"
+              id="explorer"
+              maxSize="520px"
+              minSize="220px"
+              onResize={(size) => setIsExplorerCollapsed(size.asPercentage <= 1)}
+              panelRef={explorerPanelRef}
+            >
+              <ExplorerPanel
+                activeDocument={activeDocument}
+                forms={forms}
+                isAuthenticated={isAuthenticated}
+                onCreateForm={handleCreateForm}
+                onRenameForm={handleRenameForm}
+                onSelectDocument={setActiveDocument}
+                onRequestAuth={() => setIsAuthModalOpen(true)}
+              />
+            </Panel>
+            <Separator className="group relative w-1 shrink-0 bg-[#2b2b2b] transition hover:bg-[#0078d4]">
+              <button
+                aria-label={isExplorerCollapsed ? "Expand Explorer" : "Collapse Explorer"}
+                className="absolute left-1/2 top-3 z-10 grid size-5 -translate-x-1/2 place-items-center rounded-[3px] border border-[#3c3c3c] bg-[#181818] text-[#cccccc] opacity-0 shadow-lg transition hover:text-white group-hover:opacity-100"
+                onClick={toggleExplorerPanel}
+                type="button"
+              >
+                {isExplorerCollapsed ? (
+                  <ChevronRight className="size-3.5" />
+                ) : (
+                  <ChevronLeft className="size-3.5" />
+                )}
+              </button>
+            </Separator>
+            <Panel className="h-full min-w-0" id="editor" minSize="560px">
+              <EditorArea
+                activeDocument={activeDocument}
+                activeForm={activeForm}
+                activeResponseForm={activeResponseForm}
+                isAuthenticated={isAuthenticated}
+                onCreateForm={handleCreateFormFromCommand}
+                onPublishForm={handlePublish}
+                onSaveDraft={handleSaveDraft}
+                onSelectDocument={setActiveDocument}
+                onCommitRenameForm={handleRenameForm}
+                onRenameForm={applyFormRename}
+                onUpdateForm={handleUpdateForm}
+              />
+            </Panel>
+          </Group>
+        </div>
+      </div>
       <StatusBar
         activeForm={activeForm}
         onPublishForm={handlePublish}

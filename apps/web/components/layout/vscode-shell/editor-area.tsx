@@ -50,7 +50,7 @@ export function EditorArea({
     : activeForm?.name ?? activeDocument;
 
   return (
-    <section className="min-w-0 overflow-hidden bg-[#1e1e1e]">
+    <section className="h-full w-full min-w-0 overflow-hidden bg-[#1e1e1e]">
       <EditorTab
         activeForm={activeForm}
         activeResponseForm={activeResponseForm}

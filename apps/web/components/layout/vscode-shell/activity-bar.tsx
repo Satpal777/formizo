@@ -27,7 +27,7 @@ export function ActivityBar({
   onOpenCommandPalette: () => void;
 }) {
   return (
-    <nav className="row-span-2 flex flex-col items-center border-r border-[#2b2b2b] bg-[#181818]">
+    <nav className="flex h-full flex-col items-center border-r border-[#2b2b2b] bg-[#181818]">
       <button
         aria-label="Menu"
         className="mt-1.5 grid size-8 place-items-center text-[#a0a0a0] transition hover:text-white"

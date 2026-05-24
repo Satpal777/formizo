@@ -66,7 +66,7 @@ export function FieldSettings({
   }
 
   return (
-    <div className="max-h-[42dvh] overflow-auto border-t border-[#2b2b2b] bg-[#1e1e1e] px-4 py-3">
+    <div className="h-full overflow-auto border-t border-[#2b2b2b] bg-[#1e1e1e] px-4 py-3">
       {activeField ? (
         <section>
           <div className="mb-2 flex items-center justify-between text-[12px] text-[#9d9d9d]">
