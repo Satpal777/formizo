@@ -28,7 +28,7 @@ export function WelcomeDocument({
             ["Live respondent preview", "See the public form update beside the editor as you build."],
             ["Draft to publish flow", "Save drafts, track dirty files, and publish like pushing code."],
           ].map(([title, body]) => (
-            <div key={title} className="rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4">
+            <div key={title} className="rounded-[6px] border border-[#2b2b2b] bg-[#252526] p-4">
               <h2 className="text-[14px] font-semibold text-white">{title}</h2>
               <p className="mt-2 text-[13px] leading-6 text-[#9d9d9d]">{body}</p>
             </div>
@@ -76,12 +76,12 @@ export function GuideDocument() {
         <div className="mt-7 overflow-hidden rounded-[6px] border border-[#2b2b2b]">
           {rows.map(([title, body]) => (
             <div key={title} className="grid grid-cols-[180px_minmax(0,1fr)] border-b border-[#2b2b2b] last:border-b-0">
-              <div className="bg-[#202020] px-4 py-3 text-[13px] font-medium text-white">{title}</div>
+              <div className="bg-[#252526] px-4 py-3 text-[13px] font-medium text-white">{title}</div>
               <div className="px-4 py-3 text-[13px] text-[#b7b7b7]">{body}</div>
             </div>
           ))}
         </div>
-        <div className="mt-6 rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4 text-[13px] leading-7 text-[#b7b7b7]">
+        <div className="mt-6 rounded-[6px] border border-[#2b2b2b] bg-[#252526] p-4 text-[13px] leading-7 text-[#b7b7b7]">
           Shortcuts: <kbd className="rounded bg-[#2b2b2b] px-1.5 py-0.5">Ctrl</kbd> +{" "}
           <kbd className="rounded bg-[#2b2b2b] px-1.5 py-0.5">K</kbd> opens the command palette.
           Use <kbd className="rounded bg-[#2b2b2b] px-1.5 py-0.5">Ctrl</kbd> +{" "}

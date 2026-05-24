@@ -72,8 +72,8 @@ export function AuthModal({
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-[400px] translate-x-[-50%] translate-y-[-50%] rounded-[12px] border border-[#30363d] bg-[#202020] p-0 shadow-[0_18px_50px_rgba(0,0,0,0.55)] focus:outline-none">
-          <div className="flex items-center justify-between border-b border-[#30363d] p-4">
+        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-[400px] translate-x-[-50%] translate-y-[-50%] rounded-[6px] border border-[#3c3c3c] bg-[#252526] p-0 shadow-[0_18px_50px_rgba(0,0,0,0.55)] focus:outline-none">
+          <div className="flex items-center justify-between border-b border-[#2b2b2b] p-4">
             <Dialog.Title className="text-[16px] font-medium text-[#cccccc]">
               Authentication
             </Dialog.Title>
@@ -85,7 +85,7 @@ export function AuthModal({
           </div>
 
           <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="p-4">
-            <Tabs.List className="mb-4 flex gap-4 border-b border-[#30363d]">
+            <Tabs.List className="mb-4 flex gap-4 border-b border-[#2b2b2b]">
               <Tabs.Trigger
                 value="signin"
                 className="pb-2 text-[13px] font-medium text-[#858585] data-[state=active]:border-b-2 data-[state=active]:border-[#0078d4] data-[state=active]:text-[#cccccc]"
@@ -151,7 +151,7 @@ export function AuthModal({
             <Tabs.Content value="signup" className="focus:outline-none">
               <form onSubmit={signUpForm.handleSubmit(onSignUpSubmit)} className="space-y-4">
                 {signUpSuccessMessage && (
-                  <div className="rounded-[4px] bg-[#2f82a6]/20 p-3 text-[13px] text-[#3794ff]">
+                  <div className="rounded-[4px] bg-[#3794ff]/10 p-3 text-[13px] text-[#3794ff]">
                     {signUpSuccessMessage}
                   </div>
                 )}

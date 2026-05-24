@@ -180,7 +180,7 @@ export function CommandPalette({
   return (
     <div className="fixed inset-x-0 top-9 z-50" onMouseDown={handleClose}>
       <div
-        className="mx-auto w-[min(752px,calc(100vw-28px))] overflow-hidden rounded-[12px] border border-[#30363d] bg-[#202020] p-2 shadow-[0_18px_50px_rgba(0,0,0,0.55)]"
+        className="mx-auto w-[min(752px,calc(100vw-28px))] overflow-hidden rounded-[6px] border border-[#3c3c3c] bg-[#252526] p-2 shadow-[0_18px_50px_rgba(0,0,0,0.55)]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex h-9 items-center rounded-[6px] border border-[#3794ff] bg-[#181818] px-2.5 shadow-[0_0_0_1px_rgba(55,148,255,0.15)]">
@@ -294,7 +294,7 @@ function CommandRow({
   return (
     <button
       className={`flex h-[28px] w-full items-center gap-2 rounded-[3px] px-4 text-left ${
-        active ? "bg-[#2f82a6] text-white" : "text-[#e6e6e6] hover:bg-[#2a2d2e]"
+        active ? "bg-[#04395e] text-white" : "text-[#e6e6e6] hover:bg-[#2a2d2e]"
       }`}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
@@ -342,7 +342,7 @@ function FileRow({
   return (
     <button
       className={`flex h-[28px] w-full items-center gap-2 rounded-[3px] px-4 text-left ${
-        active ? "bg-[#2f82a6] text-white" : "text-[#e6e6e6] hover:bg-[#2a2d2e]"
+        active ? "bg-[#04395e] text-white" : "text-[#e6e6e6] hover:bg-[#2a2d2e]"
       }`}
       onMouseEnter={onMouseEnter}
       type="button"

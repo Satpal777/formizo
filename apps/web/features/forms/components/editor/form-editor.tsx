@@ -354,7 +354,7 @@ export function FormEditor({
                     <button
                       className={`flex h-[26px] w-full items-center gap-2 rounded-[3px] px-2 text-left text-[12px] ${
                         index === activeSuggestion
-                          ? "bg-[#2f82a6] text-white"
+                          ? "bg-[#04395e] text-white"
                           : "text-[#d4d4d4] hover:bg-[#2a2d2e]"
                       }`}
                       key={suggestion.type}

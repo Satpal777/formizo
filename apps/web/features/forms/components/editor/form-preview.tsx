@@ -144,7 +144,7 @@ export function FormPreview({
           </button>
         ) : null}
         <section className="mt-9 border-t border-[#2b2b2b] pt-6">
-          <div className="flex items-center justify-between gap-3 rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4">
+          <div className="flex items-center justify-between gap-3 rounded-[6px] border border-[#2b2b2b] bg-[#252526] p-4">
             <div>
               <h2 className="text-[14px] font-semibold text-white">Submissions</h2>
               <p className="mt-1 text-[12px] text-[#858585]">
@@ -205,7 +205,7 @@ function PreviewField({
       <div
         id={`preview-field-${field.id}`}
         onClick={onClick}
-        className={`rounded-[6px] border bg-[#202020] p-4 cursor-pointer transition-all duration-200 ${
+        className={`rounded-[6px] border bg-[#252526] p-4 cursor-pointer transition-all duration-200 ${
           active ? "border-[#0078d4] ring-1 ring-[#0078d4]" : "border-[#2b2b2b] hover:border-[#3c3c3c]"
         } ${dragged ? "opacity-50" : ""}`}
         draggable
@@ -227,7 +227,7 @@ function PreviewField({
     <div
       id={`preview-field-${field.id}`}
       onClick={onClick}
-      className={`block rounded-[6px] border bg-[#202020] p-4 cursor-pointer transition-all duration-200 ${
+      className={`block rounded-[6px] border bg-[#252526] p-4 cursor-pointer transition-all duration-200 ${
         active ? "border-[#0078d4] ring-1 ring-[#0078d4]" : "border-[#2b2b2b] hover:border-[#3c3c3c]"
       } ${dragged ? "opacity-50" : ""}`}
       draggable
