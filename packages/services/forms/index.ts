@@ -8,6 +8,8 @@ import type {
   DeleteFormFieldsOutput,
   GetFormFieldsInput,
   GetFormFieldsOutput,
+  GetFormSubmissionsInput,
+  GetFormSubmissionsOutput,
   GetPublishedFormBySlugInput,
   GetPublishedFormBySlugOutput,
   GetFormsByUserIdInput,
@@ -214,6 +216,72 @@ export class FormsService {
 
   async getFormFields(input: GetFormFieldsInput): Promise<GetFormFieldsOutput> {
     return { fields: await getFieldsWithOptions(input.formId) };
+  }
+
+  async getFormSubmissions(
+    input: GetFormSubmissionsInput,
+  ): Promise<GetFormSubmissionsOutput> {
+    const [form] = await db
+      .select({ id: forms.id })
+      .from(forms)
+      .where(and(eq(forms.id, input.formId), eq(forms.creatorId, input.userId)));
+
+    if (!form) {
+      throw new Error("Form not found");
+    }
+
+    const responses = await db
+      .select({
+        id: formResponses.id,
+        respondentUserId: formResponses.respondentUserId,
+        respondentEmail: formResponses.respondentEmail,
+        isAnonymous: formResponses.isAnonymous,
+        metadata: formResponses.metadata,
+        submittedAt: formResponses.submittedAt,
+        createdAt: formResponses.createdAt,
+      })
+      .from(formResponses)
+      .where(eq(formResponses.formId, input.formId))
+      .orderBy(desc(formResponses.submittedAt));
+
+    if (!responses.length) {
+      return { submissions: [] };
+    }
+
+    const responseIds = responses.map((response) => response.id);
+    const answers = await db
+      .select({
+        id: formAnswers.id,
+        responseId: formAnswers.responseId,
+        fieldId: formAnswers.fieldId,
+        fieldTitle: formFields.title,
+        fieldType: formFields.type,
+        fieldOrder: formFields.order,
+        value: formAnswers.value,
+        createdAt: formAnswers.createdAt,
+      })
+      .from(formAnswers)
+      .innerJoin(formFields, eq(formAnswers.fieldId, formFields.id))
+      .where(inArray(formAnswers.responseId, responseIds))
+      .orderBy(asc(formFields.order), asc(formAnswers.createdAt));
+
+    const answersByResponseId = new Map<string, Omit<(typeof answers)[number], "responseId" | "fieldOrder">[]>();
+
+    for (const answer of answers) {
+      const { responseId, fieldOrder: _fieldOrder, ...answerValues } = answer;
+      const responseAnswers = answersByResponseId.get(responseId) ?? [];
+
+      responseAnswers.push(answerValues);
+      answersByResponseId.set(responseId, responseAnswers);
+    }
+
+    return {
+      submissions: responses.map((response) => ({
+        ...response,
+        metadata: response.metadata as Record<string, unknown> | null,
+        answers: answersByResponseId.get(response.id) ?? [],
+      })),
+    };
   }
 
   async getPublishedFormBySlug(

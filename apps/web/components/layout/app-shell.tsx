@@ -69,6 +69,14 @@ export type FormField = {
 export type PublicDocumentId = "welcome.md" | "guide.md";
 export type ActiveDocument = PublicDocumentId | string;
 
+export function getResponseDocumentId(formId: string) {
+  return `responses:${formId}`;
+}
+
+export function getResponseFormId(documentId: ActiveDocument) {
+  return documentId.startsWith("responses:") ? documentId.slice("responses:".length) : null;
+}
+
 const fieldBlockPattern =
   /<!--\s*start\s+field\s+([a-z_]+)\s*-->([\s\S]*?)<!--\s*end\s+field\s*-->/g;
 const choiceFieldTypes = new Set<FormFieldType>(["multiple_choice", "checkboxes", "dropdown"]);
@@ -115,7 +123,8 @@ export function AppShell() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const activeFormId = activeDocument.endsWith(".md") ? null : activeDocument;
+  const activeResponseFormId = getResponseFormId(activeDocument);
+  const activeFormId = activeDocument.endsWith(".md") || activeResponseFormId ? null : activeDocument;
   const formFieldsQuery = useGetFormFields(activeFormId, isMeAuthenticated);
   const hasUnsavedChanges = forms.some((form) => form.dirty);
 
@@ -353,7 +362,7 @@ export function AppShell() {
   }
 
   function getTargetForm(formId?: string) {
-    const targetId = formId ?? (activeDocument.endsWith(".md") ? null : activeDocument);
+    const targetId = formId ?? (activeDocument.endsWith(".md") || activeResponseFormId ? null : activeDocument);
 
     if (!targetId) {
       return null;
@@ -603,6 +612,9 @@ export function AppShell() {
   }
 
   const activeForm = forms.find((form) => form.id === activeDocument) ?? null;
+  const activeResponseForm = activeResponseFormId
+    ? forms.find((form) => form.id === activeResponseFormId) ?? null
+    : null;
 
   return (
     <main className="grid h-dvh min-h-[620px] grid-cols-[48px_300px_minmax(0,1fr)] grid-rows-[36px_minmax(0,1fr)_22px] overflow-hidden bg-[#1e1e1e] text-[12px] text-[#cccccc]">
@@ -623,6 +635,7 @@ export function AppShell() {
       <EditorArea
         activeDocument={activeDocument}
         activeForm={activeForm}
+        activeResponseForm={activeResponseForm}
         isAuthenticated={isAuthenticated}
         onCreateForm={handleCreateFormFromCommand}
         onPublishForm={handlePublish}

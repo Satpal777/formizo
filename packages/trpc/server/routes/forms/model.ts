@@ -230,6 +230,34 @@ export const getFormFieldsOutput = z.object({
   fields: z.array(formFieldItem).describe("The form fields"),
 });
 
+export const getFormSubmissionsInput = z.object({
+  formId: requiredString.uuid().describe("The form id whose submissions should be returned"),
+});
+
+const formSubmissionAnswer = z.object({
+  id: requiredString.describe("The answer id"),
+  fieldId: requiredString.describe("The answered field id"),
+  fieldTitle: requiredString.describe("The answered field title"),
+  fieldType: formFieldType.describe("The answered field type"),
+  value: z.any().describe("The submitted answer value"),
+  createdAt: z.date().describe("The answer creation date"),
+});
+
+const formSubmissionItem = z.object({
+  id: requiredString.describe("The response id"),
+  respondentUserId: z.string().nullable().describe("The authenticated respondent id"),
+  respondentEmail: z.string().nullable().describe("The respondent email"),
+  isAnonymous: z.boolean().describe("Whether the response is anonymous"),
+  metadata: z.record(requiredString, z.any()).nullable().describe("Submission metadata"),
+  submittedAt: z.date().describe("The submission date"),
+  createdAt: z.date().describe("The response creation date"),
+  answers: z.array(formSubmissionAnswer).describe("Submitted answers"),
+});
+
+export const getFormSubmissionsOutput = z.object({
+  submissions: z.array(formSubmissionItem).describe("The form submissions"),
+});
+
 export const publishedForm = z.object({
   id: requiredString.describe("The form id"),
   title: requiredString.describe("The form title"),

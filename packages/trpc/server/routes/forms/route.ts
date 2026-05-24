@@ -7,6 +7,8 @@ import {
   deleteFormFieldsOutput,
   getFormFieldsInput,
   getFormFieldsOutput,
+  getFormSubmissionsInput,
+  getFormSubmissionsOutput,
   getFormsByUserIdInput,
   getFormsByUserIdOutput,
   getPublishedFormBySlugInput,
@@ -104,6 +106,26 @@ export const formsRouter = router({
     .output(getFormFieldsOutput)
     .query(async ({ input }) => {
       return formsService.getFormFields(input);
+    }),
+
+  getFormSubmissions: protectedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getFormSubmissions"),
+        tags: TAGS,
+        protect: true,
+        summary: "Get form submissions",
+        description: "Return submissions and answers for a form owned by the authenticated user.",
+      },
+    })
+    .input(getFormSubmissionsInput)
+    .output(getFormSubmissionsOutput)
+    .query(async ({ ctx, input }) => {
+      return formsService.getFormSubmissions({
+        ...input,
+        userId: ctx.user.id,
+      });
     }),
 
   updateForm: protectedProcedure

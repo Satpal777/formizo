@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
   ChevronRight,
+  ClipboardList,
   Columns2,
   Copy,
   Eye,
@@ -10,6 +11,7 @@ import {
   GitBranch,
   ListChecks,
   MoreHorizontal,
+  RefreshCw,
   Save,
   Send,
   Sparkles,
@@ -17,17 +19,25 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import type { ActiveDocument, FormField, FormFieldType, FormFile, PublicDocumentId } from "../app-shell";
+import {
+  getResponseDocumentId,
+  type ActiveDocument,
+  type FormField,
+  type FormFieldType,
+  type FormFile,
+} from "../app-shell";
 import { VsCodeLogo } from "./vscode-logo";
+import { useGetFormSubmissions } from "~/hooks/api/use-forms";
 
 type EditorAreaProps = {
   activeDocument: ActiveDocument;
   activeForm: FormFile | null;
+  activeResponseForm: FormFile | null;
   isAuthenticated: boolean;
   onCreateForm: () => void;
   onPublishForm: (formId?: string) => void;
   onSaveDraft: (formId?: string) => void;
-  onSelectDocument: (documentId: PublicDocumentId) => void;
+  onSelectDocument: (documentId: ActiveDocument) => void;
   onCommitRenameForm: (formId: string, name: string) => Promise<void>;
   onRenameForm: (formId: string, name: string) => string | null;
   onUpdateForm: (formId: string, changes: Partial<FormFile>) => void;
@@ -152,6 +162,35 @@ function formatLastUpdated(value?: Date | string) {
   })}`;
 }
 
+function formatSubmissionDate(value: Date | string) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown time";
+  }
+
+  return date.toLocaleString([], {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function formatAnswerValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.length > 0 ? value.join(", ") : "No answer";
+  }
+
+  if (value === undefined || value === null || value === "") {
+    return "No answer";
+  }
+
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
 function getPublicFormUrl(form: FormFile) {
   if (form.status !== "published" || !form.slug) {
     return null;
@@ -165,6 +204,7 @@ function getPublicFormUrl(form: FormFile) {
 export function EditorArea({
   activeDocument,
   activeForm,
+  activeResponseForm,
   isAuthenticated,
   onCreateForm,
   onPublishForm,
@@ -175,13 +215,17 @@ export function EditorArea({
   onUpdateForm,
 }: EditorAreaProps) {
   const isPublicDocument = activeDocument === "welcome.md" || activeDocument === "guide.md";
-  const title = activeForm?.name ?? activeDocument;
+  const title = activeResponseForm
+    ? `${activeResponseForm.name.replace(/\.form$/, "")}.responses`
+    : activeForm?.name ?? activeDocument;
 
   return (
     <section className="min-w-0 overflow-hidden bg-[#1e1e1e]">
       <div className="flex h-9 items-end border-b border-[#2b2b2b] bg-[#181818]">
         <div className="flex h-9 min-w-[120px] max-w-[260px] items-center gap-1.5 border-r border-[#2b2b2b] border-t border-t-[#0078d4] bg-[#1e1e1e] px-2.5 text-[12px] font-semibold text-white">
-          {isPublicDocument ? (
+          {activeResponseForm ? (
+            <ClipboardList className="size-4 text-[#89d185]" />
+          ) : isPublicDocument ? (
             <FileText className="size-4 text-[#c586c0]" />
           ) : activeForm ? (
             <span className="grid size-4 place-items-center rounded-sm bg-[#3794ff]/20 text-[10px] text-[#3794ff]">F</span>
@@ -235,10 +279,13 @@ export function EditorArea({
           form={activeForm}
           onPublishForm={onPublishForm}
           onSaveDraft={onSaveDraft}
+          onSelectDocument={onSelectDocument}
           onCommitRenameForm={onCommitRenameForm}
           onRenameForm={onRenameForm}
           onUpdateForm={onUpdateForm}
         />
+      ) : activeResponseForm ? (
+        <ResponseDocument form={activeResponseForm} />
       ) : activeDocument === "guide.md" ? (
         <GuideDocument />
       ) : (
@@ -347,6 +394,7 @@ function FormEditor({
   form,
   onPublishForm,
   onSaveDraft,
+  onSelectDocument,
   onCommitRenameForm,
   onRenameForm,
   onUpdateForm,
@@ -354,11 +402,13 @@ function FormEditor({
   form: FormFile;
   onPublishForm: (formId?: string) => void;
   onSaveDraft: (formId?: string) => void;
+  onSelectDocument: (documentId: ActiveDocument) => void;
   onCommitRenameForm: (formId: string, name: string) => Promise<void>;
   onRenameForm: (formId: string, name: string) => string | null;
   onUpdateForm: (formId: string, changes: Partial<FormFile>) => void;
 }) {
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
+  const submissionsQuery = useGetFormSubmissions(form.id, true);
   const [slashPosition, setSlashPosition] = useState<number | null>(null);
   const [filterText, setFilterText] = useState("");
   const [activeSuggestion, setActiveSuggestion] = useState(0);
@@ -643,8 +693,104 @@ function FormEditor({
         ) : null}
       </div>
       <div className="grid min-w-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
-        <FormPreview form={form} />
+        <FormPreview
+          form={form}
+          isLoadingSubmissions={submissionsQuery.isLoading}
+          onOpenResponses={() => onSelectDocument(getResponseDocumentId(form.id))}
+          onRefreshSubmissions={() => submissionsQuery.refetch()}
+          submissions={submissionsQuery.data?.submissions ?? []}
+        />
         <FieldSettings form={form} onUpdateForm={onUpdateForm} />
+      </div>
+    </div>
+  );
+}
+
+function ResponseDocument({ form }: { form: FormFile }) {
+  const submissionsQuery = useGetFormSubmissions(form.id, true);
+  const submissions = submissionsQuery.data?.submissions ?? [];
+
+  return (
+    <div className="h-[calc(100%-72px)] overflow-auto bg-[#181818] px-8 py-7">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="mb-2 flex items-center gap-2 text-[12px] uppercase tracking-wide text-[#858585]">
+              <ClipboardList className="size-4 text-[#89d185]" />
+              Responses
+            </div>
+            <h1 className="truncate text-[24px] font-semibold text-white">
+              {form.name.replace(/\.form$/, "")}
+            </h1>
+            <p className="mt-2 text-[13px] text-[#9d9d9d]">
+              {submissionsQuery.isLoading
+                ? "Loading submissions"
+                : `${submissions.length} response${submissions.length === 1 ? "" : "s"} collected`}
+            </p>
+          </div>
+          <button
+            className="flex h-8 items-center gap-1.5 rounded-[3px] px-2.5 text-[12px] text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
+            onClick={() => submissionsQuery.refetch()}
+            type="button"
+          >
+            <RefreshCw className={`size-3.5 ${submissionsQuery.isLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+
+        {submissions.length === 0 ? (
+          <div className="rounded-[8px] border border-dashed border-[#3c3c3c] bg-[#1e1e1e] p-10 text-center">
+            <ClipboardList className="mx-auto size-8 text-[#858585]" />
+            <h2 className="mt-4 text-[16px] font-semibold text-white">No responses yet</h2>
+            <p className="mt-2 text-[13px] text-[#858585]">
+              Published form submissions will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {submissions.map((submission, index) => (
+              <article
+                className="rounded-[8px] border border-[#2b2b2b] bg-[#1e1e1e]"
+                key={submission.id}
+              >
+                <header className="flex items-start justify-between gap-4 border-b border-[#2b2b2b] px-5 py-4">
+                  <div className="min-w-0">
+                    <h2 className="text-[15px] font-semibold text-white">
+                      Response {submissions.length - index}
+                    </h2>
+                    <p className="mt-1 truncate text-[12px] text-[#858585]">
+                      {submission.respondentEmail ??
+                        submission.respondentUserId ??
+                        (submission.isAnonymous ? "Anonymous respondent" : "Respondent")}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[12px] text-[#858585]">
+                    {formatSubmissionDate(submission.submittedAt)}
+                  </span>
+                </header>
+                <div className="grid gap-3 p-5 md:grid-cols-2">
+                  {submission.answers.length === 0 ? (
+                    <div className="text-[13px] text-[#858585]">No answers stored.</div>
+                  ) : (
+                    submission.answers.map((answer) => (
+                      <div className="rounded-[6px] bg-[#181818] p-4" key={answer.id}>
+                        <div className="text-[11px] uppercase text-[#858585]">
+                          {answer.fieldType.replace("_", " ")}
+                        </div>
+                        <div className="mt-1 text-[13px] font-medium text-[#d4d4d4]">
+                          {answer.fieldTitle}
+                        </div>
+                        <div className="mt-2 break-words text-[14px] text-white">
+                          {formatAnswerValue(answer.value)}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -777,7 +923,21 @@ function FieldSettings({
   );
 }
 
-function FormPreview({ form }: { form: FormFile }) {
+type SubmissionItem = NonNullable<ReturnType<typeof useGetFormSubmissions>["data"]>["submissions"][number];
+
+function FormPreview({
+  form,
+  isLoadingSubmissions,
+  onOpenResponses,
+  onRefreshSubmissions,
+  submissions,
+}: {
+  form: FormFile;
+  isLoadingSubmissions: boolean;
+  onOpenResponses: () => void;
+  onRefreshSubmissions: () => void;
+  submissions: SubmissionItem[];
+}) {
   const publicUrl = getPublicFormUrl(form);
 
   async function copyPublicUrl() {
@@ -856,6 +1016,37 @@ function FormPreview({ form }: { form: FormFile }) {
             Submit preview
           </button>
         ) : null}
+        <section className="mt-9 border-t border-[#2b2b2b] pt-6">
+          <div className="flex items-center justify-between gap-3 rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4">
+            <div>
+              <h2 className="text-[14px] font-semibold text-white">Submissions</h2>
+              <p className="mt-1 text-[12px] text-[#858585]">
+                {isLoadingSubmissions
+                  ? "Loading responses"
+                  : `${submissions.length} response${submissions.length === 1 ? "" : "s"}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                aria-label="Refresh submissions"
+                className="grid size-7 place-items-center rounded-[3px] text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
+                onClick={onRefreshSubmissions}
+                title="Refresh submissions"
+                type="button"
+              >
+                <RefreshCw className={`size-3.5 ${isLoadingSubmissions ? "animate-spin" : ""}`} />
+              </button>
+              <button
+                className="flex h-7 items-center gap-1.5 rounded-[3px] bg-[#0e639c] px-2.5 text-[12px] text-white hover:bg-[#1177bb]"
+                onClick={onOpenResponses}
+                type="button"
+              >
+                <ClipboardList className="size-3.5" />
+                Open
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

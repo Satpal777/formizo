@@ -21,6 +21,17 @@ export function useGetFormFields(formId: string | null, enabled: boolean) {
   );
 }
 
+export function useGetFormSubmissions(formId: string | null, enabled: boolean) {
+  return trpc.forms.getFormSubmissions.useQuery(
+    { formId: formId ?? "" },
+    {
+      enabled: enabled && Boolean(formId),
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  );
+}
+
 export function useGetPublishedFormBySlug(slug: string) {
   return trpc.forms.getPublishedFormBySlug.useQuery(
     { slug },

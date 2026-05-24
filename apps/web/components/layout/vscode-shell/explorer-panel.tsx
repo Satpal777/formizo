@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
+  ClipboardList,
   FileText,
   FileJson2,
   FilePlus2,
@@ -12,7 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import type { ActiveDocument, FormFile } from "../app-shell";
+import { getResponseDocumentId, type ActiveDocument, type FormFile } from "../app-shell";
 
 type ExplorerPanelProps = {
   activeDocument: ActiveDocument;
@@ -26,7 +27,6 @@ type ExplorerPanelProps = {
 
 const projectItems = [
   { label: "templates", icon: Folder, open: false },
-  { label: "responses", icon: Folder, open: false },
   { label: "workflows", icon: Folder, open: false },
   { label: "themes", icon: Folder, open: false },
 ];
@@ -228,6 +228,28 @@ export function ExplorerPanel({
               <span className="min-w-0 truncate">Sign in to create a form</span>
             </button>
           ) : null}
+        </TreeFolder>
+
+        <TreeFolder label="responses" open>
+          {forms.length > 0 ? (
+            forms.map((form) => {
+              const responseDocumentId = getResponseDocumentId(form.id);
+
+              return (
+                <TreeFile
+                  active={activeDocument === responseDocumentId}
+                  icon={ClipboardList}
+                  key={responseDocumentId}
+                  label={`${form.name.replace(/\.form$/, "")}.responses`}
+                  onClick={() => onSelectDocument(responseDocumentId)}
+                />
+              );
+            })
+          ) : (
+            <div className="flex h-[24px] items-center px-8 text-[12px] text-[#858585]">
+              No response files
+            </div>
+          )}
         </TreeFolder>
 
         {projectItems.map((item) => (
