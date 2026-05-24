@@ -8,6 +8,7 @@ import {
   Folder,
   FolderOpen,
   MoreHorizontal,
+  Pencil,
   Sparkles,
 } from "lucide-react";
 
@@ -18,6 +19,7 @@ type ExplorerPanelProps = {
   forms: FormFile[];
   isAuthenticated: boolean;
   onCreateForm: (name: string) => void;
+  onRenameForm: (formId: string, name: string) => void;
   onSelectDocument: (documentId: ActiveDocument) => void;
   onRequestAuth: () => void;
 };
@@ -34,11 +36,23 @@ export function ExplorerPanel({
   forms,
   isAuthenticated,
   onCreateForm,
+  onRenameForm,
   onSelectDocument,
   onRequestAuth,
 }: ExplorerPanelProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
+  const [renamingFormId, setRenamingFormId] = useState<string | null>(null);
+  const [renameDraftName, setRenameDraftName] = useState("");
+
+  function getDefaultFormName() {
+    return `survey-${forms.length + 1}`;
+  }
+
+  function startCreating() {
+    setDraftName(getDefaultFormName());
+    setIsCreating(true);
+  }
 
   function submitForm() {
     const trimmedName = draftName.trim();
@@ -51,6 +65,26 @@ export function ExplorerPanel({
     onCreateForm(trimmedName);
     setDraftName("");
     setIsCreating(false);
+  }
+
+  function startRenaming(form: FormFile) {
+    setRenamingFormId(form.id);
+    setRenameDraftName(form.name);
+  }
+
+  function submitRename() {
+    if (!renamingFormId) {
+      return;
+    }
+
+    const trimmedName = renameDraftName.trim();
+
+    if (trimmedName) {
+      onRenameForm(renamingFormId, trimmedName);
+    }
+
+    setRenamingFormId(null);
+    setRenameDraftName("");
   }
 
   return (
@@ -76,7 +110,7 @@ export function ExplorerPanel({
               return;
             }
 
-            setIsCreating(true);
+            startCreating();
           }}
           title={isAuthenticated ? "New Form" : "Sign in to create forms"}
         >
@@ -102,22 +136,62 @@ export function ExplorerPanel({
 
         <TreeFolder label="forms" open>
           {forms.map((form) => (
-            <button
-              key={form.id}
-              className={`flex h-[24px] w-full items-center gap-1.5 px-8 text-left ${
-                activeDocument === form.id
-                  ? "bg-[#04395e] text-white"
-                  : "text-[#cccccc] hover:bg-[#2a2d2e]"
-              }`}
-              onClick={() => onSelectDocument(form.id)}
-            >
-              <FileJson2 className="size-4 shrink-0 text-[#3794ff]" />
-              <span className="min-w-0 truncate">{form.name}</span>
-              {form.dirty ? <span className="ml-auto size-2 rounded-full bg-white" /> : null}
-              {!form.dirty && form.status === "published" ? (
-                <span className="ml-auto text-[10px] uppercase text-[#89d185]">live</span>
+            <div className="group/form relative" key={form.id}>
+              {renamingFormId === form.id ? (
+                <div className="flex h-[26px] items-center gap-1.5 px-8">
+                  <FileJson2 className="size-4 shrink-0 text-[#3794ff]" />
+                  <input
+                    autoFocus
+                    className="h-[21px] min-w-0 flex-1 rounded-[2px] border border-[#0078d4] bg-[#252526] px-1.5 text-[12px] text-white outline-none"
+                    onBlur={submitRename}
+                    onChange={(event) => setRenameDraftName(event.target.value)}
+                    onFocus={(event) => event.currentTarget.select()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        submitRename();
+                      }
+
+                      if (event.key === "Escape") {
+                        setRenamingFormId(null);
+                        setRenameDraftName("");
+                      }
+                    }}
+                    value={renameDraftName}
+                  />
+                </div>
+              ) : (
+                <button
+                  className={`flex h-[24px] w-full items-center gap-1.5 px-8 pr-14 text-left ${
+                    activeDocument === form.id
+                      ? "bg-[#04395e] text-white"
+                      : "text-[#cccccc] hover:bg-[#2a2d2e]"
+                  }`}
+                  onClick={() => onSelectDocument(form.id)}
+                  type="button"
+                >
+                  <FileJson2 className="size-4 shrink-0 text-[#3794ff]" />
+                  <span className="min-w-0 truncate">{form.name}</span>
+                  {form.dirty ? <span className="ml-auto size-2 rounded-full bg-white" /> : null}
+                  {!form.dirty && form.status === "published" ? (
+                    <span className="ml-auto text-[10px] uppercase text-[#89d185]">live</span>
+                  ) : null}
+                </button>
+              )}
+              {renamingFormId !== form.id ? (
+                <button
+                  aria-label={`Rename ${form.name}`}
+                  className="absolute right-8 top-0 hidden size-6 place-items-center text-[#cccccc] hover:bg-[#3a3d3e] hover:text-white group-hover/form:grid"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    startRenaming(form);
+                  }}
+                  title="Rename"
+                  type="button"
+                >
+                  <Pencil className="size-3" />
+                </button>
               ) : null}
-            </button>
+            </div>
           ))}
 
           {isCreating ? (
@@ -128,6 +202,7 @@ export function ExplorerPanel({
                 className="h-[21px] min-w-0 flex-1 rounded-[2px] border border-[#0078d4] bg-[#252526] px-1.5 text-[12px] text-white outline-none"
                 onBlur={submitForm}
                 onChange={(event) => setDraftName(event.target.value)}
+                onFocus={(event) => event.currentTarget.select()}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     submitForm();
@@ -138,11 +213,11 @@ export function ExplorerPanel({
                     setIsCreating(false);
                   }
                 }}
-                placeholder="form-name"
                 value={draftName}
               />
             </div>
           ) : null}
+
           {!isAuthenticated && forms.length === 0 ? (
             <button
               className="flex h-[26px] w-full items-center gap-1.5 px-8 text-left text-[#858585] hover:bg-[#2a2d2e] hover:text-[#cccccc]"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { ActivityBar } from "./vscode-shell/activity-bar";
 import { CommandPalette } from "./vscode-shell/command-palette";
@@ -10,6 +11,7 @@ import { StatusBar } from "./vscode-shell/status-bar";
 import { TitleBar } from "./vscode-shell/title-bar";
 import { AuthModal } from "~/features/auth/components/auth-modal";
 import { useMe } from "~/hooks/api/use-auth";
+import { useAddFormField, useCreateForm, useUpdateForm } from "~/hooks/api/use-forms";
 
 export type FormFile = {
   id: string;
@@ -38,16 +40,18 @@ export type FormFieldType =
   | "opinion_scale"
   | "yes_no"
   | "file_upload"
-  | "statement"
-  | "section"
-  | "thank_you";
+  | "statement";
 
 export type FormField = {
   id: string;
   type: FormFieldType;
   title: string;
   description?: string;
+  placeholder?: string;
   options?: string[];
+  validation?: Record<string, unknown>;
+  properties?: Record<string, unknown>;
+  saved?: boolean;
 };
 
 export type PublicDocumentId = "welcome.md" | "guide.md";
@@ -55,6 +59,9 @@ export type ActiveDocument = PublicDocumentId | string;
 
 export function AppShell() {
   const meQuery = useMe();
+  const createFormMutation = useCreateForm();
+  const updateFormMutation = useUpdateForm();
+  const addFormFieldMutation = useAddFormField();
   const [forms, setForms] = useState<FormFile[]>([]);
   const [activeDocument, setActiveDocument] = useState<ActiveDocument>("welcome.md");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -85,7 +92,7 @@ export function AppShell() {
     }
   }, [meQuery.data?.authenticated, meQuery.isError]);
 
-  function handleCreateForm(name: string) {
+  async function handleCreateForm(name: string) {
     if (!isAuthenticated) {
       setIsAuthModalOpen(true);
       return;
@@ -98,14 +105,28 @@ export function AppShell() {
     }
 
     const fileName = trimmedName.endsWith(".form") ? trimmedName : `${trimmedName}.form`;
+    const title = fileName.replace(/\.form$/, "");
+    let createdForm;
+
+    try {
+      createdForm = await createFormMutation.mutateAsync({
+        title,
+        description: `${title} form`,
+        password: undefined,
+        redirectUrl: undefined,
+        thankYouMessage: undefined,
+      });
+    } catch {
+      return;
+    }
     const form: FormFile = {
-      id: `${trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`,
+      id: createdForm.id,
       name: fileName,
       status: "draft",
       dirty: false,
       accessMode: "public",
       resultVisibility: "creator_only",
-      content: `# ${fileName.replace(/\.form$/, "")}\n\n<!-- Type '/' for fields -->`,
+      content: `# ${title}\n\n<!-- Type "/" for fields -->`,
       fields: [],
     };
 
@@ -121,30 +142,169 @@ export function AppShell() {
     );
   }
 
-  function handleSaveDraft(formId?: string) {
+  function formatFormName(name: string) {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      return null;
+    }
+
+    return trimmedName.endsWith(".form") ? trimmedName : `${trimmedName}.form`;
+  }
+
+  function replaceFormHeading(content: string, title: string) {
+    const nextHeading = `# ${title}`;
+
+    if (/^#\s+.+$/m.test(content)) {
+      return content.replace(/^#\s+.+$/m, nextHeading);
+    }
+
+    return `${nextHeading}\n\n${content}`.trim();
+  }
+
+  async function handleRenameForm(formId: string, name: string, persist = true) {
+    const fileName = formatFormName(name);
+
+    if (!fileName) {
+      return;
+    }
+
+    const title = fileName.replace(/\.form$/, "");
+
+    setForms((currentForms) =>
+      currentForms.map((form) =>
+        form.id === formId
+          ? {
+              ...form,
+              name: fileName,
+              content: replaceFormHeading(form.content, title),
+              dirty: true,
+            }
+          : form,
+      ),
+    );
+
+    if (!persist) {
+      return;
+    }
+
+    try {
+      await updateFormMutation.mutateAsync({ id: formId, title });
+    } catch {
+      return;
+    }
+  }
+
+  function getTargetForm(formId?: string) {
     const targetId = formId ?? (activeDocument.endsWith(".md") ? null : activeDocument);
 
     if (!targetId) {
+      return null;
+    }
+
+    return forms.find((form) => form.id === targetId) ?? null;
+  }
+
+  async function saveNewFields(form: FormFile) {
+    const savedFields: FormField[] = [];
+
+    for (const [index, field] of form.fields.entries()) {
+      if (!field.title.trim()) {
+        toast.error("Field label is required before saving");
+        throw new Error("Field label is required before saving");
+      }
+
+      const isChoiceField =
+        field.type === "multiple_choice" || field.type === "checkboxes" || field.type === "dropdown";
+
+      if (isChoiceField && !field.options?.length) {
+        toast.error("Choice fields need at least one option before saving");
+        throw new Error("Choice fields need at least one option before saving");
+      }
+
+      if (field.saved) {
+        savedFields.push(field);
+        continue;
+      }
+
+      const createdField = await addFormFieldMutation.mutateAsync({
+        formId: form.id,
+        type: field.type,
+        title: field.title,
+        description: field.description,
+        placeholder: field.placeholder,
+        order: (index + 1) * 1000,
+        validation: field.validation,
+        properties: field.properties,
+        options: field.options?.map((option, optionIndex) => ({
+          label: option,
+          value:
+            option
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, "") || `option-${optionIndex + 1}`,
+          order: (optionIndex + 1) * 1000,
+        })),
+      });
+
+      savedFields.push({ ...field, id: createdField.id, saved: true });
+    }
+
+    setForms((currentForms) =>
+      currentForms.map((currentForm) =>
+        currentForm.id === form.id ? { ...currentForm, fields: savedFields } : currentForm,
+      ),
+    );
+
+    return savedFields;
+  }
+
+  async function handleSaveDraft(formId?: string) {
+    const targetForm = getTargetForm(formId);
+
+    if (!targetForm) {
+      return;
+    }
+
+    try {
+      await saveNewFields(targetForm);
+      await updateFormMutation.mutateAsync({
+        id: targetForm.id,
+        status: "draft",
+        title: targetForm.name.replace(/\.form$/, ""),
+      });
+    } catch {
       return;
     }
 
     setForms((currentForms) =>
       currentForms.map((form) =>
-        form.id === targetId ? { ...form, status: "draft", dirty: false } : form,
+        form.id === targetForm.id ? { ...form, status: "draft", dirty: false } : form,
       ),
     );
   }
 
-  function handlePublish(formId?: string) {
-    const targetId = formId ?? (activeDocument.endsWith(".md") ? null : activeDocument);
+  async function handlePublish(formId?: string) {
+    const targetForm = getTargetForm(formId);
 
-    if (!targetId) {
+    if (!targetForm) {
+      return;
+    }
+
+    try {
+      await saveNewFields(targetForm);
+      await updateFormMutation.mutateAsync({
+        id: targetForm.id,
+        status: "published",
+        title: targetForm.name.replace(/\.form$/, ""),
+      });
+    } catch {
       return;
     }
 
     setForms((currentForms) =>
       currentForms.map((form) =>
-        form.id === targetId ? { ...form, status: "published", dirty: false } : form,
+        form.id === targetForm.id ? { ...form, status: "published", dirty: false } : form,
       ),
     );
   }
@@ -155,7 +315,7 @@ export function AppShell() {
       return;
     }
 
-    handleCreateForm(`survey-${forms.length + 1}`);
+    void handleCreateForm(`survey-${forms.length + 1}`);
     setIsCommandPaletteOpen(false);
   }
 
@@ -173,6 +333,7 @@ export function AppShell() {
         forms={forms}
         isAuthenticated={isAuthenticated}
         onCreateForm={handleCreateForm}
+        onRenameForm={handleRenameForm}
         onSelectDocument={setActiveDocument}
         onRequestAuth={() => setIsAuthModalOpen(true)}
       />
@@ -184,6 +345,7 @@ export function AppShell() {
         onPublishForm={handlePublish}
         onSaveDraft={handleSaveDraft}
         onSelectDocument={setActiveDocument}
+        onRenameForm={(formId, name) => void handleRenameForm(formId, name, false)}
         onUpdateForm={handleUpdateForm}
       />
       <StatusBar

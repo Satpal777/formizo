@@ -25,6 +25,7 @@ type EditorAreaProps = {
   onPublishForm: (formId?: string) => void;
   onSaveDraft: (formId?: string) => void;
   onSelectDocument: (documentId: PublicDocumentId) => void;
+  onRenameForm: (formId: string, name: string) => void;
   onUpdateForm: (formId: string, changes: Partial<FormFile>) => void;
 };
 
@@ -45,9 +46,83 @@ const fieldSuggestions: Array<{ type: FormFieldType; label: string; template: st
   { type: "yes_no", label: "Yes/No", template: "Do you agree?" },
   { type: "file_upload", label: "File upload", template: "Upload a file" },
   { type: "statement", label: "Statement", template: "Statement block" },
-  { type: "section", label: "Section", template: "New section" },
-  { type: "thank_you", label: "Thank you screen", template: "Thanks for submitting" },
 ];
+
+const slashHelpComment = '<!-- Type "/" for fields -->';
+const choiceFieldTypes = new Set<FormFieldType>(["multiple_choice", "checkboxes", "dropdown"]);
+const fieldBlockPattern =
+  /<!--\s*start\s+field\s+([a-z_]+)\s*-->([\s\S]*?)<!--\s*end\s+field\s*-->/g;
+
+function formatFieldBlock(suggestion: { type: FormFieldType; template: string; options?: string[] }) {
+  let block = `<!-- start field ${suggestion.type} -->\n`;
+  block += `title: ${suggestion.template || "Untitled field"}\n`;
+  block += `description: \n`;
+  block += `placeholder: \n`;
+  block += `required: false\n`;
+  if (suggestion.options) {
+    block += `options: ${suggestion.options.join(", ")}\n`;
+  } else if (choiceFieldTypes.has(suggestion.type)) {
+    block += `options: Option 1, Option 2\n`;
+  }
+  block += `validation: {}\n`;
+  block += `properties: {}\n`;
+  block += `<!-- end field -->`;
+  return block;
+}
+
+function formatFieldBlockFromField(field: FormField) {
+  const validation = field.validation ? JSON.stringify(field.validation) : "{}";
+  const properties = field.properties ? JSON.stringify(field.properties) : "{}";
+
+  let block = `<!-- start field ${field.type} -->\n`;
+  block += `title: ${field.title || "Untitled field"}\n`;
+  block += `description: ${field.description ?? ""}\n`;
+  block += `placeholder: ${field.placeholder ?? ""}\n`;
+  block += `required: ${field.validation?.required === true ? "true" : "false"}\n`;
+  if (choiceFieldTypes.has(field.type)) {
+    block += `options: ${field.options?.join(", ") ?? ""}\n`;
+  }
+  block += `validation: ${validation}\n`;
+  block += `properties: ${properties}\n`;
+  block += `<!-- end field -->`;
+  return block;
+}
+
+function getFieldBlockValues(blockText: string) {
+  return Object.fromEntries(
+    blockText
+      .split("\n")
+      .map((line) => {
+        const separatorIndex = line.indexOf(":");
+
+        if (separatorIndex === -1) {
+          return null;
+        }
+
+        return [
+          line.slice(0, separatorIndex).trim(),
+          line.slice(separatorIndex + 1).trim(),
+        ] as const;
+      })
+      .filter((entry): entry is readonly [string, string] => Boolean(entry)),
+  );
+}
+
+function parseJsonSetting(value: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(value) as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+}
+
+function getFieldBlocks(content: string) {
+  return Array.from(content.matchAll(fieldBlockPattern));
+}
 
 export function EditorArea({
   activeDocument,
@@ -57,6 +132,7 @@ export function EditorArea({
   onPublishForm,
   onSaveDraft,
   onSelectDocument,
+  onRenameForm,
   onUpdateForm,
 }: EditorAreaProps) {
   const isPublicDocument = activeDocument === "welcome.md" || activeDocument === "guide.md";
@@ -115,6 +191,7 @@ export function EditorArea({
           form={activeForm}
           onPublishForm={onPublishForm}
           onSaveDraft={onSaveDraft}
+          onRenameForm={onRenameForm}
           onUpdateForm={onUpdateForm}
         />
       ) : activeDocument === "guide.md" ? (
@@ -225,11 +302,13 @@ function FormEditor({
   form,
   onPublishForm,
   onSaveDraft,
+  onRenameForm,
   onUpdateForm,
 }: {
   form: FormFile;
   onPublishForm: (formId?: string) => void;
   onSaveDraft: (formId?: string) => void;
+  onRenameForm: (formId: string, name: string) => void;
   onUpdateForm: (formId: string, changes: Partial<FormFile>) => void;
 }) {
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
@@ -248,6 +327,18 @@ function FormEditor({
     );
   }, [filterText]);
 
+  const slashHint = useMemo(() => {
+    if (filteredSuggestions.length === 0) {
+      return "No matching field";
+    }
+
+    if (!filterText) {
+      return 'Type "/" for fields';
+    }
+
+    return "Press Enter for label";
+  }, [filterText, filteredSuggestions.length]);
+
   useEffect(() => {
     setEditorContent(form.content);
     setSlashPosition(null);
@@ -255,7 +346,74 @@ function FormEditor({
     setActiveSuggestion(0);
   }, [form.id]);
 
-  function updateContent(content: string, fields = form.fields) {
+  useEffect(() => {
+    setEditorContent(form.content);
+  }, [form.content]);
+
+  useEffect(() => {
+    if (activeSuggestion >= filteredSuggestions.length) {
+      setActiveSuggestion(0);
+    }
+  }, [activeSuggestion, filteredSuggestions.length]);
+
+  function getFieldsFromContent(content: string, currentFields: FormField[]): FormField[] {
+    let fieldIndex = 0;
+    const legacyFieldPattern = /<!--\s*\/([a-z_]+)\s+(.+?)\s*-->/g;
+    const matches = [...getFieldBlocks(content), ...Array.from(content.matchAll(legacyFieldPattern))].sort(
+      (left, right) => (left.index ?? 0) - (right.index ?? 0),
+    );
+
+    return matches
+      .map((match) => {
+        const isLegacy = match[0].startsWith("<!-- /");
+        const type = match[1] as FormFieldType;
+        const currentField = currentFields[fieldIndex];
+        fieldIndex += 1;
+
+        if (isLegacy) {
+          const title = match[2]?.trim() ?? "";
+          return {
+            id: currentField?.id ?? `${type}-${Date.now()}-${fieldIndex}`,
+            type,
+            title,
+            description: currentField?.description,
+            placeholder: currentField?.placeholder,
+            options: currentField?.options,
+            validation: currentField?.validation,
+            properties: currentField?.properties,
+            saved: currentField?.saved,
+          };
+        }
+
+        const values = getFieldBlockValues(match[2] ?? "");
+        const title = values.title ?? "";
+        const options = values.options
+          ?.split(",")
+          .map((option) => option.trim())
+          .filter(Boolean);
+        const validation = parseJsonSetting(values.validation ?? "") ?? {};
+        const required = values.required === "true";
+
+        if (required) {
+          validation.required = true;
+        }
+
+        return {
+          id: currentField?.id ?? `${type}-${Date.now()}-${fieldIndex}`,
+          type,
+          title,
+          description: values.description || undefined,
+          placeholder: values.placeholder || undefined,
+          options: options && options.length > 0 ? options : choiceFieldTypes.has(type) ? [] : undefined,
+          validation: Object.keys(validation).length > 0 ? validation : undefined,
+          properties: parseJsonSetting(values.properties ?? ""),
+          saved: currentField?.saved,
+        };
+      })
+      .filter((field) => fieldSuggestions.some((suggestion) => suggestion.type === field.type));
+  }
+
+  function updateContent(content: string, fields = getFieldsFromContent(content, form.fields)) {
     setEditorContent(content);
     onUpdateForm(form.id, { content, fields });
   }
@@ -263,8 +421,14 @@ function FormEditor({
   function handleContentChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
     const content = event.target.value;
     const selection = event.target.selectionStart;
+    const headingMatch = /^#\s+(.+)$/m.exec(content);
+    const headingTitle = headingMatch?.[1]?.trim();
     
     updateContent(content);
+
+    if (headingTitle && `${headingTitle}.form` !== form.name) {
+      onRenameForm(form.id, headingTitle);
+    }
     
     if (slashPosition !== null) {
       if (selection <= slashPosition || /[\s\n]/.test(content.slice(slashPosition + 1, selection))) {
@@ -288,9 +452,10 @@ function FormEditor({
       type: suggestion.type,
       title: suggestion.template,
       options: suggestion.options,
+      saved: false,
     };
     const editor = editorRef.current;
-    const insertedText = `/${suggestion.type} ${suggestion.template}`;
+    const insertedText = formatFieldBlock(suggestion);
     const nextFields = [...form.fields, field];
 
     if (editor) {
@@ -304,7 +469,7 @@ function FormEditor({
       updateContent(editor.value, nextFields);
       editor.focus();
     } else {
-      const nextContent = `${editorContent.replace(/<!-- Type '\/' for fields -->/g, "").trim()}\n\n${insertedText}`.trim();
+      const nextContent = `${editorContent.replace(slashHelpComment, "").trim()}\n\n${insertedText}`.trim();
       updateContent(nextContent, nextFields);
     }
 
@@ -386,30 +551,166 @@ function FormEditor({
         {slashPosition !== null ? (
           <div className="absolute left-5 top-16 max-h-[228px] w-[244px] overflow-hidden rounded-[5px] border border-[#454545] bg-[#252526] shadow-[0_10px_28px_rgba(0,0,0,0.46)]">
             <div className="border-b border-[#373737] px-2.5 py-1.5 text-[11px] uppercase tracking-wide text-[#9d9d9d]">
-              {filterText ? "Press Enter to select" : "Type '/' for fields"}
+              {slashHint}
             </div>
             <div className="max-h-[194px] overflow-auto p-1">
-            {filteredSuggestions.length > 0 ? filteredSuggestions.map((suggestion, index) => (
-              <button
-                className={`flex h-[26px] w-full items-center gap-2 rounded-[3px] px-2 text-left text-[12px] ${
-                  index === activeSuggestion ? "bg-[#2f82a6] text-white" : "text-[#d4d4d4] hover:bg-[#2a2d2e]"
-                }`}
-                key={suggestion.type}
-                onClick={() => insertField(index)}
-                onMouseEnter={() => setActiveSuggestion(index)}
-                type="button"
-              >
-                <ChevronRight className="size-3 shrink-0" />
-                <span className="min-w-0 flex-1 truncate">{suggestion.label}</span>
-              </button>
-            )) : (
-              <div className="px-2 py-2 text-center text-[12px] text-[#858585]">No fields found</div>
-            )}
+              {filteredSuggestions.length > 0 ? (
+                filteredSuggestions.map((suggestion, index) => (
+                  <button
+                    className={`flex h-[26px] w-full items-center gap-2 rounded-[3px] px-2 text-left text-[12px] ${
+                      index === activeSuggestion
+                        ? "bg-[#2f82a6] text-white"
+                        : "text-[#d4d4d4] hover:bg-[#2a2d2e]"
+                    }`}
+                    key={suggestion.type}
+                    onClick={() => insertField(index)}
+                    onMouseEnter={() => setActiveSuggestion(index)}
+                    type="button"
+                  >
+                    <ChevronRight className="size-3 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{suggestion.label}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-2 py-2 text-center text-[12px] text-[#858585]">
+                  No fields found
+                </div>
+              )}
             </div>
           </div>
         ) : null}
       </div>
-      <FormPreview form={form} />
+      <div className="grid min-w-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
+        <FormPreview form={form} />
+        <FieldSettings form={form} onUpdateForm={onUpdateForm} />
+      </div>
+    </div>
+  );
+}
+
+function FieldSettings({
+  form,
+  onUpdateForm,
+}: {
+  form: FormFile;
+  onUpdateForm: (formId: string, changes: Partial<FormFile>) => void;
+}) {
+  const lastField = form.fields.at(-1);
+
+  if (!lastField) {
+    return null;
+  }
+
+  const activeField = lastField;
+
+  function updateLastField(changes: Partial<FormField>) {
+    const nextField: FormField = { ...activeField, ...changes };
+    let fieldIndex = 0;
+    const nextContent = form.content.replace(fieldBlockPattern, (block) => {
+      const currentField = form.fields[fieldIndex];
+      fieldIndex += 1;
+
+      if (currentField?.id !== activeField.id) {
+        return block;
+      }
+
+      return formatFieldBlockFromField(nextField);
+    });
+
+    onUpdateForm(form.id, {
+      content: nextContent,
+      fields: form.fields.map((field) =>
+        field.id === activeField.id ? { ...nextField, saved: field.saved } : field,
+      ),
+    });
+  }
+
+  function updateRequired(required: boolean) {
+    updateLastField({
+      validation: {
+        ...activeField.validation,
+        required,
+      },
+    });
+  }
+
+  function updateJsonSetting(key: "validation" | "properties", value: string) {
+    try {
+      updateLastField({
+        [key]: value.trim() ? JSON.parse(value) : undefined,
+      });
+    } catch {
+      return;
+    }
+  }
+
+  return (
+    <div className="border-t border-[#2b2b2b] bg-[#1e1e1e] px-4 py-3">
+      <div className="mb-2 flex items-center justify-between text-[12px] text-[#9d9d9d]">
+        <span>Field setup</span>
+        <span className={activeField.title.trim() ? "text-[#89d185]" : "text-[#f48771]"}>
+          {activeField.title.trim() ? "Ready to save" : "Label required"}
+        </span>
+      </div>
+      <input
+        className="h-8 w-full rounded-[4px] border border-[#3c3c3c] bg-[#181818] px-2.5 text-[12px] text-white outline-none"
+        onChange={(event) => updateLastField({ title: event.target.value })}
+        placeholder="Field label"
+        value={activeField.title}
+      />
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <input
+          className="h-8 min-w-0 rounded-[4px] border border-[#3c3c3c] bg-[#181818] px-2.5 text-[12px] text-white outline-none"
+          onChange={(event) => updateLastField({ description: event.target.value || undefined })}
+          placeholder="Description"
+          value={activeField.description ?? ""}
+        />
+        <input
+          className="h-8 min-w-0 rounded-[4px] border border-[#3c3c3c] bg-[#181818] px-2.5 text-[12px] text-white outline-none"
+          onChange={(event) => updateLastField({ placeholder: event.target.value || undefined })}
+          placeholder="Placeholder"
+          value={activeField.placeholder ?? ""}
+        />
+      </div>
+      <label className="mt-2 flex h-7 items-center gap-2 text-[12px] text-[#cccccc]">
+        <input
+          checked={activeField.validation?.required === true}
+          className="size-3.5"
+          onChange={(event) => updateRequired(event.target.checked)}
+          type="checkbox"
+        />
+        Required
+      </label>
+      {choiceFieldTypes.has(activeField.type) ? (
+        <input
+          className="mt-2 h-8 w-full rounded-[4px] border border-[#3c3c3c] bg-[#181818] px-2.5 text-[12px] text-white outline-none"
+          onChange={(event) =>
+            updateLastField({
+              options: event.target.value
+                .split(",")
+                .map((option) => option.trim())
+                .filter(Boolean),
+            })
+          }
+          placeholder="Options, comma separated"
+          value={activeField.options?.join(", ") ?? ""}
+        />
+      ) : null}
+      <details className="mt-2 text-[12px] text-[#9d9d9d]">
+        <summary className="cursor-pointer select-none text-[#cccccc]">Advanced settings</summary>
+        <textarea
+          className="mt-2 h-16 w-full resize-none rounded-[4px] border border-[#3c3c3c] bg-[#181818] px-2.5 py-2 font-mono text-[11px] text-white outline-none"
+          onBlur={(event) => updateJsonSetting("validation", event.target.value)}
+          placeholder="validation JSON"
+          defaultValue={JSON.stringify(activeField.validation ?? {})}
+        />
+        <textarea
+          className="mt-2 h-16 w-full resize-none rounded-[4px] border border-[#3c3c3c] bg-[#181818] px-2.5 py-2 font-mono text-[11px] text-white outline-none"
+          onBlur={(event) => updateJsonSetting("properties", event.target.value)}
+          placeholder="properties JSON"
+          defaultValue={JSON.stringify(activeField.properties ?? {})}
+        />
+      </details>
     </div>
   );
 }
@@ -452,7 +753,7 @@ function FormPreview({ form }: { form: FormFile }) {
 }
 
 function PreviewField({ field, index }: { field: FormField; index: number }) {
-  if (field.type === "statement" || field.type === "section" || field.type === "thank_you") {
+  if (field.type === "statement") {
     return (
       <div className="rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4">
         <div className="flex items-center gap-2 text-[14px] font-semibold text-white">
