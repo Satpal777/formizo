@@ -8,7 +8,6 @@ import {
   Save,
   Send,
   Settings,
-  X,
 } from "lucide-react";
 
 import { VsCodeLogo } from "./vscode-logo";

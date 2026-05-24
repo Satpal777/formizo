@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, Eye, Settings, FileText, CheckSquare, Sparkles, Search } from "lucide-react";
+import { Shield, Eye, FileText, CheckSquare, Sparkles, Search, ChevronDown } from "lucide-react";
 import type { FormFile } from "../../types";
 
 export function FormSettingsView({
@@ -133,16 +133,16 @@ export function FormSettingsView({
               label="Access Mode"
               description="Control who is permitted to access and submit answers to this form. Public allows anyone, Authenticated requires sign-in."
               control={
-                <select
-                  className="h-8 w-[200px] rounded-[4px] border border-[#3c3c3c] bg-[#181818] px-2 text-[12px] text-white outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
-                  onChange={(e) =>
-                    onUpdateForm(form.id, { accessMode: e.target.value as FormFile["accessMode"] })
+                <SelectControl
+                  onChange={(value) =>
+                    onUpdateForm(form.id, { accessMode: value as FormFile["accessMode"] })
                   }
+                  options={[
+                    { label: "Public", value: "public" },
+                    { label: "Authenticated", value: "authenticated" },
+                  ]}
                   value={form.accessMode}
-                >
-                  <option value="public">Public</option>
-                  <option value="authenticated">Authenticated</option>
-                </select>
+                />
               }
             />
 
@@ -284,17 +284,17 @@ export function FormSettingsView({
               label="Results Visibility"
               description="Determine who is allowed to inspect the responses collected by this form."
               control={
-                <select
-                  className="h-8 w-[200px] rounded-[4px] border border-[#3c3c3c] bg-[#181818] px-2 text-[12px] text-white outline-none focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
-                  onChange={(e) =>
-                    onUpdateForm(form.id, { resultVisibility: e.target.value as FormFile["resultVisibility"] })
+                <SelectControl
+                  onChange={(value) =>
+                    onUpdateForm(form.id, { resultVisibility: value as FormFile["resultVisibility"] })
                   }
+                  options={[
+                    { label: "Creator only", value: "creator_only" },
+                    { label: "After submit", value: "after_submit" },
+                    { label: "Hidden", value: "hidden" },
+                  ]}
                   value={form.resultVisibility}
-                >
-                  <option value="creator_only">Creator only</option>
-                  <option value="after_submit">After submit</option>
-                  <option value="hidden">Hidden</option>
-                </select>
+                />
               }
             />
 
@@ -342,6 +342,33 @@ export function FormSettingsView({
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+function SelectControl({
+  onChange,
+  options,
+  value,
+}: {
+  onChange: (value: string) => void;
+  options: Array<{ label: string; value: string }>;
+  value: string;
+}) {
+  return (
+    <div className="relative h-8 w-[200px] shrink-0">
+      <select
+        className="h-8 w-full appearance-none rounded-[4px] border border-[#3c3c3c] bg-[#181818] pl-2.5 pr-7 text-[12px] text-white outline-none transition hover:border-[#555555] focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4]"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-[#858585]" />
     </div>
   );
 }
