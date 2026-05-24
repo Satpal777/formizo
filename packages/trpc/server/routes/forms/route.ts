@@ -5,6 +5,8 @@ import {
   createFormOutput,
   deleteFormFieldsInput,
   deleteFormFieldsOutput,
+  getFormFieldsInput,
+  getFormFieldsOutput,
   getFormsByUserIdInput,
   getFormsByUserIdOutput,
   updateFormFieldsInput,
@@ -57,6 +59,23 @@ export const formsRouter = router({
         ...input,
         creatorId: ctx.user.id,
       });
+    }),
+
+  getFormFields: protectedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getFormFields"),
+        tags: TAGS,
+        protect: true,
+        summary: "Get form fields",
+        description: "Return fields and options for a form.",
+      },
+    })
+    .input(getFormFieldsInput)
+    .output(getFormFieldsOutput)
+    .query(async ({ input }) => {
+      return formsService.getFormFields(input);
     }),
 
   updateForm: protectedProcedure

@@ -10,6 +10,17 @@ export function useGetFormsByUserId(enabled: boolean) {
   });
 }
 
+export function useGetFormFields(formId: string | null, enabled: boolean) {
+  return trpc.forms.getFormFields.useQuery(
+    { formId: formId ?? "" },
+    {
+      enabled: enabled && Boolean(formId),
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  );
+}
+
 export function useCreateForm() {
   const utils = trpc.useUtils();
 

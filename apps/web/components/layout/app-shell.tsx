@@ -15,6 +15,7 @@ import {
   useAddFormFields,
   useCreateForm,
   useDeleteFormFields,
+  useGetFormFields,
   useGetFormsByUserId,
   useUpdateForm,
   useUpdateFormFields,
@@ -68,6 +69,34 @@ export type ActiveDocument = PublicDocumentId | string;
 
 const fieldBlockPattern =
   /<!--\s*start\s+field\s+([a-z_]+)\s*-->([\s\S]*?)<!--\s*end\s+field\s*-->/g;
+const choiceFieldTypes = new Set<FormFieldType>(["multiple_choice", "checkboxes", "dropdown"]);
+
+function formatFieldBlockFromField(field: FormField) {
+  const validation = field.validation ? JSON.stringify(field.validation) : "{}";
+  const properties = field.properties ? JSON.stringify(field.properties) : "{}";
+
+  let block = `<!-- start field ${field.type} -->\n`;
+  block += `id: ${field.id}\n`;
+  block += `title: ${field.title || "Untitled field"}\n`;
+  block += `description: ${field.description ?? ""}\n`;
+  block += `placeholder: ${field.placeholder ?? ""}\n`;
+  block += `required: ${field.validation?.required === true ? "true" : "false"}\n`;
+  if (choiceFieldTypes.has(field.type)) {
+    block += `options: ${field.options?.join(", ") ?? ""}\n`;
+  }
+  block += `validation: ${validation}\n`;
+  block += `properties: ${properties}\n`;
+  block += `<!-- end field -->`;
+  return block;
+}
+
+function buildFormContent(title: string, fields: FormField[]) {
+  if (!fields.length) {
+    return `# ${title}\n\n<!-- Type "/" for fields -->`;
+  }
+
+  return `# ${title}\n\n${fields.map((field) => formatFieldBlockFromField(field)).join("\n\n")}`;
+}
 
 export function AppShell() {
   const meQuery = useMe();
@@ -83,6 +112,8 @@ export function AppShell() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const activeFormId = activeDocument.endsWith(".md") ? null : activeDocument;
+  const formFieldsQuery = useGetFormFields(activeFormId, isMeAuthenticated);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -132,13 +163,47 @@ export function AppShell() {
           accessMode: form.accessMode,
           resultVisibility: form.resultVisibility,
           lastUpdatedAt: form.updatedAt,
-          content: currentForm?.content ?? `# ${form.title}\n\n<!-- Type "/" for fields -->`,
+          content: currentForm?.content ?? buildFormContent(form.title, []),
           fields: currentForm?.fields ?? [],
           savedFields: currentForm?.savedFields ?? [],
         };
       });
     });
   }, [formsQuery.data?.forms]);
+
+  useEffect(() => {
+    if (!activeFormId || !formFieldsQuery.data) {
+      return;
+    }
+
+    setForms((currentForms) =>
+      currentForms.map((form) => {
+        if (form.id !== activeFormId || form.dirty) {
+          return form;
+        }
+
+        const fields: FormField[] = formFieldsQuery.data.fields.map((field) => ({
+          id: field.id,
+          type: field.type,
+          title: field.title,
+          description: field.description ?? undefined,
+          placeholder: field.placeholder ?? undefined,
+          options: field.options.length > 0 ? field.options.map((option) => option.label) : undefined,
+          validation: field.validation ?? undefined,
+          properties: field.properties ?? undefined,
+          saved: true,
+        }));
+        const title = form.name.replace(/\.form$/, "");
+
+        return {
+          ...form,
+          content: buildFormContent(title, fields),
+          fields,
+          savedFields: fields.map((field) => ({ ...field })),
+        };
+      }),
+    );
+  }, [activeFormId, formFieldsQuery.data]);
 
   async function handleCreateForm(name: string) {
     if (!isAuthenticated) {
@@ -174,7 +239,7 @@ export function AppShell() {
       dirty: false,
       accessMode: "public",
       resultVisibility: "creator_only",
-      content: `# ${title}\n\n<!-- Type "/" for fields -->`,
+      content: buildFormContent(title, []),
       fields: [],
       savedFields: [],
       lastUpdatedAt: new Date(),

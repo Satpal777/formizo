@@ -6,6 +6,8 @@ import type {
   CreateFormOutput,
   DeleteFormFieldsInput,
   DeleteFormFieldsOutput,
+  GetFormFieldsInput,
+  GetFormFieldsOutput,
   GetFormsByUserIdInput,
   GetFormsByUserIdOutput,
   UpdateFormFieldsInput,
@@ -13,7 +15,7 @@ import type {
   UpdateFormInput,
   UpdateFormOutput,
 } from "./model";
-import { db, desc, eq, inArray } from "@repo/database";
+import { asc, db, desc, eq, inArray } from "@repo/database";
 import {
   formFieldOptions,
   formFields,
@@ -117,6 +119,61 @@ export class FormsService {
       .orderBy(desc(forms.updatedAt));
 
     return { forms: userForms };
+  }
+
+  async getFormFields(input: GetFormFieldsInput): Promise<GetFormFieldsOutput> {
+    const fields = await db
+      .select({
+        id: formFields.id,
+        formId: formFields.formId,
+        type: formFields.type,
+        title: formFields.title,
+        description: formFields.description,
+        placeholder: formFields.placeholder,
+        order: formFields.order,
+        validation: formFields.validation,
+        properties: formFields.properties,
+        createdAt: formFields.createdAt,
+        updatedAt: formFields.updatedAt,
+      })
+      .from(formFields)
+      .where(eq(formFields.formId, input.formId))
+      .orderBy(asc(formFields.order), asc(formFields.createdAt));
+
+    if (!fields.length) {
+      return { fields: [] };
+    }
+
+    const options = await db
+      .select({
+        id: formFieldOptions.id,
+        fieldId: formFieldOptions.fieldId,
+        label: formFieldOptions.label,
+        value: formFieldOptions.value,
+        order: formFieldOptions.order,
+      })
+      .from(formFieldOptions)
+      .where(inArray(formFieldOptions.fieldId, fields.map((field) => field.id)))
+      .orderBy(asc(formFieldOptions.order), asc(formFieldOptions.createdAt));
+
+    const optionsByFieldId = new Map<string, Omit<(typeof options)[number], "fieldId">[]>();
+
+    for (const option of options) {
+      const { fieldId, ...optionValues } = option;
+      const fieldOptions = optionsByFieldId.get(fieldId) ?? [];
+
+      fieldOptions.push(optionValues);
+      optionsByFieldId.set(fieldId, fieldOptions);
+    }
+
+    return {
+      fields: fields.map((field) => ({
+        ...field,
+        validation: field.validation as Record<string, unknown> | null,
+        properties: field.properties as Record<string, unknown> | null,
+        options: optionsByFieldId.get(field.id) ?? [],
+      })),
+    };
   }
 
   async createForm(input: CreateFormInput): Promise<CreateFormOutput> {

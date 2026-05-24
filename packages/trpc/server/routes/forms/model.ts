@@ -121,6 +121,10 @@ export const getFormsByUserIdOutput = z.object({
   forms: z.array(formListItem),
 });
 
+export const getFormFieldsInput = z.object({
+  formId: requiredString.uuid().describe("The id of the form whose fields should be returned"),
+});
+
 const formFieldOptionInput = z.object({
   label: requiredString.max(255).describe("The option label shown to respondents"),
   value: requiredString.max(255).describe("The stored option value"),
@@ -180,4 +184,27 @@ export const deleteFormFieldsInput = z.object({
 
 export const deleteFormFieldsOutput = z.object({
   ids: z.array(requiredString).describe("The ids of the deleted fields"),
+});
+
+const formFieldOptionOutput = formFieldOptionInput.extend({
+  id: requiredString.describe("The option id"),
+});
+
+export const formFieldItem = z.object({
+  id: requiredString.describe("The field id"),
+  formId: requiredString.describe("The form id"),
+  type: formFieldType.describe("The field type"),
+  title: requiredString.describe("The field title"),
+  description: z.string().nullable().describe("The field description"),
+  placeholder: z.string().nullable().describe("The field placeholder"),
+  order: z.number().int().describe("The field display order"),
+  validation: z.record(requiredString, z.any()).nullable().describe("Field validation settings"),
+  properties: z.record(requiredString, z.any()).nullable().describe("Field type-specific settings"),
+  options: z.array(formFieldOptionOutput).describe("Selectable options for choice fields"),
+  createdAt: z.date().describe("The field creation date"),
+  updatedAt: z.date().describe("The field update date"),
+});
+
+export const getFormFieldsOutput = z.object({
+  fields: z.array(formFieldItem).describe("The form fields"),
 });
