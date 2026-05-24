@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -51,6 +51,11 @@ export function ExplorerPanel({
   const [draftName, setDraftName] = useState("");
   const [renamingFormId, setRenamingFormId] = useState<string | null>(null);
   const [renameDraftName, setRenameDraftName] = useState("");
+  const isFormActive = forms.some((f) => f.id === activeDocument);
+  const formsFolderOpen = isFormActive;
+
+  const isResponseActive = activeDocument.startsWith("responses:");
+  const isPublicActive = activeDocument === "welcome.md" || activeDocument === "guide.md" || activeDocument === "pricing.md";
 
   function getDefaultFormName() {
     return `survey-${forms.length + 1}`;
@@ -132,7 +137,7 @@ export function ExplorerPanel({
       </div>
 
       <div className="flex-1 overflow-auto pb-3 pt-1 text-[13px]">
-        <TreeFolder label="public" open>
+        <TreeFolder label="public" open={isPublicActive}>
           <TreeFile
             active={activeDocument === "welcome.md"}
             icon={Sparkles}
@@ -153,7 +158,10 @@ export function ExplorerPanel({
           />
         </TreeFolder>
 
-        <TreeFolder label={currentPlan === "free" ? `forms (${forms.length}/10)` : `forms (${forms.length})`} open>
+        <TreeFolder
+          label={currentPlan === "free" ? `forms (${forms.length}/10)` : `forms (${forms.length})`}
+          open={formsFolderOpen}
+        >
           {forms.map((form) => (
             <div className="group/form relative" key={form.id}>
               {renamingFormId === form.id ? (
@@ -248,7 +256,7 @@ export function ExplorerPanel({
           ) : null}
         </TreeFolder>
 
-        <TreeFolder label="responses" open>
+        <TreeFolder label="responses" open={isResponseActive}>
           {forms.length > 0 ? (
             forms.map((form) => {
               const responseDocumentId = getResponseDocumentId(form.id);
@@ -303,6 +311,12 @@ function TreeFolder({
 }) {
   const [isOpen, setIsOpen] = useState(open);
   const FolderIcon = isOpen ? FolderOpen : Folder;
+
+  useEffect(() => {
+    if (open) {
+      setIsOpen(true);
+    }
+  }, [open]);
 
   return (
     <div className="select-none">

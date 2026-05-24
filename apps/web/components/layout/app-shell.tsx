@@ -18,6 +18,7 @@ import { StatusBar } from "./vscode-shell/status-bar";
 import { TitleBar } from "./vscode-shell/title-bar";
 import { AuthModal } from "~/features/auth/components/auth-modal";
 import { LimitReachedModal } from "./vscode-shell/limit-reached-modal";
+import { SearchPanel } from "./vscode-shell/search-panel";
 import { getResponseFormId } from "~/features/forms/lib/documents";
 import {
   buildFormContent,
@@ -55,6 +56,7 @@ export function AppShell() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [isExplorerCollapsed, setIsExplorerCollapsed] = useState(false);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<string>("Explorer");
   const activeResponseFormId = getResponseFormId(activeDocument);
   const activeFormId = activeDocument.endsWith(".md") || activeResponseFormId ? null : activeDocument;
   const formFieldsQuery = useGetFormFields(activeFormId, isMeAuthenticated);
@@ -71,6 +73,30 @@ export function AppShell() {
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    let scrollTimeout: ReturnType<typeof setTimeout>;
+
+    function handleScroll(event: Event) {
+      const target = event.target as HTMLElement;
+      if (!target || !target.classList) {
+        return;
+      }
+
+      target.classList.add("is-scrolling");
+
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        target.classList.remove("is-scrolling");
+      }, 1000);
+    }
+
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+      clearTimeout(scrollTimeout);
+    };
   }, []);
 
   useEffect(() => {
@@ -671,6 +697,8 @@ export function AppShell() {
           <ActivityBar
             isAuthenticated={isAuthenticated}
             onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            activeTab={activeSidebarTab}
+            onTabChange={setActiveSidebarTab}
           />
         </div>
         <div className="min-w-0 flex-1 overflow-hidden">
@@ -686,17 +714,27 @@ export function AppShell() {
               onResize={(size) => setIsExplorerCollapsed(size.asPercentage <= 1)}
               panelRef={explorerPanelRef}
             >
-               <ExplorerPanel
-                activeDocument={activeDocument}
-                forms={forms}
-                isAuthenticated={isAuthenticated}
-                onCreateForm={handleCreateForm}
-                onRenameForm={handleRenameForm}
-                onSelectDocument={setActiveDocument}
-                onRequestAuth={() => setIsAuthModalOpen(true)}
-                currentPlan={currentPlan}
-                onLimitReached={() => setIsLimitModalOpen(true)}
-              />
+              {activeSidebarTab === "Search" ? (
+                <SearchPanel
+                  forms={forms}
+                  onSelectForm={(formId) => {
+                    setActiveDocument(formId);
+                    setActiveSidebarTab("Explorer");
+                  }}
+                />
+              ) : (
+                <ExplorerPanel
+                  activeDocument={activeDocument}
+                  forms={forms}
+                  isAuthenticated={isAuthenticated}
+                  onCreateForm={handleCreateForm}
+                  onRenameForm={handleRenameForm}
+                  onSelectDocument={setActiveDocument}
+                  onRequestAuth={() => setIsAuthModalOpen(true)}
+                  currentPlan={currentPlan}
+                  onLimitReached={() => setIsLimitModalOpen(true)}
+                />
+              )}
             </Panel>
             <Separator className="group relative w-1 shrink-0 bg-[#2b2b2b] transition hover:bg-[#0078d4]">
               <button

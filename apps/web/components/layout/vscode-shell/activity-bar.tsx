@@ -22,9 +22,13 @@ const topItems = [
 export function ActivityBar({
   isAuthenticated,
   onOpenCommandPalette,
+  activeTab = "Explorer",
+  onTabChange,
 }: {
   isAuthenticated: boolean;
   onOpenCommandPalette: () => void;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
 }) {
   return (
     <nav className="flex h-full flex-col items-center border-r border-[#2b2b2b] bg-[#181818]">
@@ -36,20 +40,24 @@ export function ActivityBar({
       </button>
 
       <div className="mt-4 flex w-full flex-1 flex-col items-center gap-1.5">
-        {topItems.map((item) => (
-          <button
-            key={item.label}
-            aria-label={item.label}
-            className={`relative grid size-[37px] place-items-center text-[#9d9d9d] transition hover:text-white ${
-              item.active ? "text-white" : ""
-            }`}
-          >
-            {item.active ? (
-              <span className="absolute left-0 top-0 h-full w-0.5 bg-[#0078d4]" />
-            ) : null}
-            <item.icon className="size-5" strokeWidth={1.7} />
-          </button>
-        ))}
+        {topItems.map((item) => {
+          const isActive = item.label === activeTab;
+          return (
+            <button
+              key={item.label}
+              aria-label={item.label}
+              onClick={() => onTabChange?.(item.label)}
+              className={`relative grid size-[37px] place-items-center transition hover:text-white cursor-pointer ${
+                isActive ? "text-white" : "text-[#9d9d9d]"
+              }`}
+            >
+              {isActive ? (
+                <span className="absolute left-0 top-0 h-full w-0.5 bg-[#0078d4]" />
+              ) : null}
+              <item.icon className="size-5" strokeWidth={1.7} />
+            </button>
+          );
+        })}
       </div>
 
       <div className="mb-2.5 flex flex-col items-center gap-1.5">
