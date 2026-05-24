@@ -184,13 +184,16 @@ export class FormsService {
       title: input.title,
     };
 
-    const [createdForm] = await db.insert(forms).values(newForm).returning({ id: forms.id });
+    const [createdForm] = await db
+      .insert(forms)
+      .values(newForm)
+      .returning({ id: forms.id, updatedAt: forms.updatedAt });
 
     if (!createdForm) {
       throw new Error("Failed to create form");
     }
 
-    return { id: createdForm.id };
+    return { id: createdForm.id, updatedAt: createdForm.updatedAt };
   }
 
   async updateForm(input: UpdateFormInput): Promise<UpdateFormOutput> {
@@ -201,22 +204,23 @@ export class FormsService {
       throw new Error("At least one form field must be provided");
     }
 
+    const updatedAt = new Date();
     const updateValues: Partial<NewForm> = {
       ...formValues,
-      updatedAt: new Date(),
+      updatedAt,
     };
 
     const [updatedForm] = await db
       .update(forms)
       .set(updateValues)
       .where(eq(forms.id, id))
-      .returning({ id: forms.id });
+      .returning({ id: forms.id, updatedAt: forms.updatedAt });
 
     if (!updatedForm) {
       throw new Error("Failed to update form");
     }
 
-    return { id: updatedForm.id };
+    return { id: updatedForm.id, updatedAt: updatedForm.updatedAt };
   }
 
   async addFormFields(input: AddFormFieldsInput): Promise<AddFormFieldsOutput> {

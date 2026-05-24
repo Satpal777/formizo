@@ -114,6 +114,7 @@ export function AppShell() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const activeFormId = activeDocument.endsWith(".md") ? null : activeDocument;
   const formFieldsQuery = useGetFormFields(activeFormId, isMeAuthenticated);
+  const hasUnsavedChanges = forms.some((form) => form.dirty);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -127,6 +128,21 @@ export function AppShell() {
 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      if (!hasUnsavedChanges) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     if (isMeAuthenticated) {
@@ -242,7 +258,7 @@ export function AppShell() {
       content: buildFormContent(title, []),
       fields: [],
       savedFields: [],
-      lastUpdatedAt: new Date(),
+      lastUpdatedAt: createdForm.updatedAt,
     };
 
     setForms((currentForms) => [...currentForms, form]);
@@ -303,17 +319,32 @@ export function AppShell() {
   }
 
   async function handleRenameForm(formId: string, name: string) {
+    const wasDirtyBeforeRename = forms.find((form) => form.id === formId)?.dirty ?? false;
     const title = applyFormRename(formId, name);
 
     if (!title) {
       return;
     }
 
+    let renamedForm: Awaited<ReturnType<typeof updateFormMutation.mutateAsync>>;
+
     try {
-      await updateFormMutation.mutateAsync({ id: formId, title });
+      renamedForm = await updateFormMutation.mutateAsync({ id: formId, title });
     } catch {
       return;
     }
+
+    setForms((currentForms) =>
+      currentForms.map((form) =>
+        form.id === formId
+          ? {
+              ...form,
+              dirty: wasDirtyBeforeRename,
+              lastUpdatedAt: renamedForm.updatedAt,
+            }
+          : form,
+      ),
+    );
   }
 
   function getTargetForm(formId?: string) {
@@ -479,12 +510,12 @@ export function AppShell() {
       return;
     }
 
-    const savedAt = new Date();
     let syncedForm: Awaited<ReturnType<typeof syncFormFields>>;
+    let savedForm: Awaited<ReturnType<typeof updateFormMutation.mutateAsync>>;
 
     try {
       syncedForm = await syncFormFields(targetForm);
-      await updateFormMutation.mutateAsync({
+      savedForm = await updateFormMutation.mutateAsync({
         id: targetForm.id,
         status: "draft",
         title: targetForm.name.replace(/\.form$/, ""),
@@ -503,7 +534,7 @@ export function AppShell() {
               savedFields: syncedForm.fields.map((field) => ({ ...field })),
               status: "draft",
               dirty: false,
-              lastUpdatedAt: savedAt,
+              lastUpdatedAt: savedForm.updatedAt,
             }
           : form,
       ),
@@ -523,12 +554,12 @@ export function AppShell() {
       return;
     }
 
-    const savedAt = new Date();
     let syncedForm: Awaited<ReturnType<typeof syncFormFields>>;
+    let savedForm: Awaited<ReturnType<typeof updateFormMutation.mutateAsync>>;
 
     try {
       syncedForm = await syncFormFields(targetForm);
-      await updateFormMutation.mutateAsync({
+      savedForm = await updateFormMutation.mutateAsync({
         id: targetForm.id,
         status: "published",
         title: targetForm.name.replace(/\.form$/, ""),
@@ -547,7 +578,7 @@ export function AppShell() {
               savedFields: syncedForm.fields.map((field) => ({ ...field })),
               status: "published",
               dirty: false,
-              lastUpdatedAt: savedAt,
+              lastUpdatedAt: savedForm.updatedAt,
             }
           : form,
       ),

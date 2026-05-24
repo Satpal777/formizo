@@ -97,10 +97,12 @@ export const updateFormInput = updateFormValues.extend({
 
 export const createFormOutput = z.object({
   id: requiredString.describe("The id of the created form"),
+  updatedAt: z.date().describe("The form update date"),
 });
 
 export const updateFormOutput = z.object({
   id: requiredString.describe("The id of the updated form"),
+  updatedAt: z.date().describe("The form update date"),
 });
 
 export const getFormsByUserIdInput = z.object({
