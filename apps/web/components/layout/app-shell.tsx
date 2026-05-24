@@ -9,6 +9,7 @@ import { ExplorerPanel } from "./vscode-shell/explorer-panel";
 import { StatusBar } from "./vscode-shell/status-bar";
 import { TitleBar } from "./vscode-shell/title-bar";
 import { AuthModal } from "~/features/auth/components/auth-modal";
+import { useMe } from "~/hooks/api/use-auth";
 
 export type FormFile = {
   id: string;
@@ -53,6 +54,7 @@ export type PublicDocumentId = "welcome.md" | "guide.md";
 export type ActiveDocument = PublicDocumentId | string;
 
 export function AppShell() {
+  const meQuery = useMe();
   const [forms, setForms] = useState<FormFile[]>([]);
   const [activeDocument, setActiveDocument] = useState<ActiveDocument>("welcome.md");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -71,6 +73,17 @@ export function AppShell() {
 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (meQuery.data?.authenticated) {
+      setIsAuthenticated(true);
+      return;
+    }
+
+    if (meQuery.isError) {
+      setIsAuthenticated(false);
+    }
+  }, [meQuery.data?.authenticated, meQuery.isError]);
 
   function handleCreateForm(name: string) {
     if (!isAuthenticated) {
@@ -102,7 +115,9 @@ export function AppShell() {
 
   function handleUpdateForm(formId: string, changes: Partial<FormFile>) {
     setForms((currentForms) =>
-      currentForms.map((form) => (form.id === formId ? { ...form, ...changes, dirty: true } : form)),
+      currentForms.map((form) =>
+        form.id === formId ? { ...form, ...changes, dirty: true } : form,
+      ),
     );
   }
 
@@ -114,7 +129,9 @@ export function AppShell() {
     }
 
     setForms((currentForms) =>
-      currentForms.map((form) => (form.id === targetId ? { ...form, status: "draft", dirty: false } : form)),
+      currentForms.map((form) =>
+        form.id === targetId ? { ...form, status: "draft", dirty: false } : form,
+      ),
     );
   }
 
@@ -126,7 +143,9 @@ export function AppShell() {
     }
 
     setForms((currentForms) =>
-      currentForms.map((form) => (form.id === targetId ? { ...form, status: "published", dirty: false } : form)),
+      currentForms.map((form) =>
+        form.id === targetId ? { ...form, status: "published", dirty: false } : form,
+      ),
     );
   }
 
@@ -167,7 +186,11 @@ export function AppShell() {
         onSelectDocument={setActiveDocument}
         onUpdateForm={handleUpdateForm}
       />
-      <StatusBar activeForm={activeForm} onPublishForm={handlePublish} onSaveDraft={handleSaveDraft} />
+      <StatusBar
+        activeForm={activeForm}
+        onPublishForm={handlePublish}
+        onSaveDraft={handleSaveDraft}
+      />
       <CommandPalette
         isAuthenticated={isAuthenticated}
         isOpen={isCommandPaletteOpen}

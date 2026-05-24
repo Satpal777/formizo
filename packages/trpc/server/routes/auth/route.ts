@@ -1,5 +1,5 @@
 import { userService } from "../../services";
-import { publicProcedure, router } from "../../trpc";
+import { protectedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import { setAuthCookie } from "./cookie";
 import {
@@ -7,6 +7,8 @@ import {
   createUserWithEmailAndPasswordOutput,
   forgotPasswordInput,
   forgotPasswordOutput,
+  meInput,
+  meOutput,
   refreshTokenInput,
   refreshTokenOutput,
   resetPasswordInput,
@@ -14,14 +16,13 @@ import {
   signInWithEmailAndPasswordInput,
   signInWithEmailAndPasswordOutput,
   verifyEmailInput,
-  verifyEmailOutput
+  verifyEmailOutput,
 } from "./model";
 
 const TAGS = ["Authentication"];
 const getPath = generatePath("/authentication");
 
 export const authRouter = router({
-
   createUserWithEmailAndPassword: publicProcedure
     .meta({
       openapi: {
@@ -29,14 +30,32 @@ export const authRouter = router({
         path: getPath("/createUserWithEmailAndPassword"),
         tags: TAGS,
         summary: "Create a new user with email and password",
-        description: "This endpoint allows you to create a new user account using an email address and password. It returns an email verification token that can be used to verify the user's email address.",
-      }
+        description:
+          "This endpoint allows you to create a new user account using an email address and password. It returns an email verification token that can be used to verify the user's email address.",
+      },
     })
     .input(createUserWithEmailAndPasswordInput)
     .output(createUserWithEmailAndPasswordOutput)
     .mutation(async ({ input }) => {
       const { email, name, password } = input;
       return userService.createUserWithEmailAndPassword({ email, name, password });
+    }),
+
+  me: protectedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/me"),
+        tags: TAGS,
+        protect: true,
+        summary: "Get authenticated user profile",
+        description: "Returns the authenticated user's profile from the auth cookie.",
+      },
+    })
+    .input(meInput)
+    .output(meOutput)
+    .query(async ({ ctx }) => {
+      return userService.me({ id: ctx.user.id });
     }),
 
   verifyEmail: publicProcedure
@@ -46,8 +65,9 @@ export const authRouter = router({
         path: getPath("/verifyEmail"),
         tags: TAGS,
         summary: "Verify a user's email address",
-        description: "This endpoint verifies a user's email address using the user id and email verification token.",
-      }
+        description:
+          "This endpoint verifies a user's email address using the user id and email verification token.",
+      },
     })
     .input(verifyEmailInput)
     .output(verifyEmailOutput)
@@ -64,16 +84,20 @@ export const authRouter = router({
         path: getPath("/signInWithEmailAndPassword"),
         tags: TAGS,
         summary: "Sign in with email and password",
-        description: "This endpoint signs in a user using an email address and password. It returns an authentication token and refresh token.",
-      }
+        description:
+          "This endpoint signs in a user using an email address and password. It returns an authentication token and refresh token.",
+      },
     })
     .input(signInWithEmailAndPasswordInput)
     .output(signInWithEmailAndPasswordOutput)
-    .mutation(async ({ input,ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       const { email, password } = input;
-      const {token,refreshToken,id} = await userService.signInWithEmailAndPassword({ email, password });
+      const { token, refreshToken, id } = await userService.signInWithEmailAndPassword({
+        email,
+        password,
+      });
       setAuthCookie(ctx, token, refreshToken);
-      return { success:true, id };
+      return { success: true, id };
     }),
 
   forgotPassword: publicProcedure
@@ -83,8 +107,9 @@ export const authRouter = router({
         path: getPath("/forgotPassword"),
         tags: TAGS,
         summary: "Request a password reset",
-        description: "This endpoint creates a password reset token for a user using their email address.",
-      }
+        description:
+          "This endpoint creates a password reset token for a user using their email address.",
+      },
     })
     .input(forgotPasswordInput)
     .output(forgotPasswordOutput)
@@ -101,8 +126,9 @@ export const authRouter = router({
         path: getPath("/resetPassword"),
         tags: TAGS,
         summary: "Reset a user's password",
-        description: "This endpoint resets a user's password using the password reset token created by the forgot password flow.",
-      }
+        description:
+          "This endpoint resets a user's password using the password reset token created by the forgot password flow.",
+      },
     })
     .input(resetPasswordInput)
     .output(resetPasswordOutput)
@@ -119,8 +145,9 @@ export const authRouter = router({
         path: getPath("/refreshToken"),
         tags: TAGS,
         summary: "Refresh authentication tokens",
-        description: "This endpoint exchanges a valid refresh token for a new authentication token and refresh token.",
-      }
+        description:
+          "This endpoint exchanges a valid refresh token for a new authentication token and refresh token.",
+      },
     })
     .input(refreshTokenInput)
     .output(refreshTokenOutput)
@@ -128,6 +155,5 @@ export const authRouter = router({
       const { refreshToken } = input;
       const result = await userService.refreshToken({ refreshToken });
       return result;
-    })
-
+    }),
 });

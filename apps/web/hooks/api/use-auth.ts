@@ -13,6 +13,13 @@ export function useSignIn() {
   });
 }
 
+export function useMe() {
+  return trpc.auth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useSignUp() {
   const utils = trpc.useUtils();
   return trpc.auth.createUserWithEmailAndPassword.useMutation({

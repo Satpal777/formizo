@@ -7,6 +7,8 @@ import {
   RefreshTokenOutputT,
   ResetPasswordInputT,
   ResetPasswordOutputT,
+  MeInputT,
+  MeOutputT,
   signInWithEmailAndPasswordInputT,
   signInWithEmailAndPasswordOutputT,
   VerifyEmailInputT,
@@ -214,6 +216,24 @@ export class UserService {
     };
   }
 
+  public async me(input: MeInputT): Promise<MeOutputT> {
+    const user = await this.getUserById(input.id);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return {
+      authenticated: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        emailVerified: user.emailVerified,
+      },
+    };
+  }
+
   /**
    * Verifies a user's email address using the provided verification token.
    * @param input
@@ -235,7 +255,10 @@ export class UserService {
       throw new Error("Invalid token or already verified");
     }
 
-    await db.update(users).set({ emailVerified: true ,verificationToken: null, verificationTokenExpiresAt: null }).where(eq(users.id, id));
+    await db
+      .update(users)
+      .set({ emailVerified: true, verificationToken: null, verificationTokenExpiresAt: null })
+      .where(eq(users.id, id));
 
     return { success: true };
   }
