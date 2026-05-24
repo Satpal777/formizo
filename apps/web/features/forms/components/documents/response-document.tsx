@@ -327,7 +327,7 @@ export function ResponseDocument({ form }: { form: FormFile }) {
                             submission.respondentUserId ??
                             (submission.isAnonymous ? "Anonymous" : "User")}
                         </td>
-                        <td className="truncate border-r border-[#2b2b2b] py-2 px-3 text-[#9d9d9d] group-hover:text-white">
+                        <td className="truncate border-r border-[#2b2b2b] py-2 px-3 text-[#9d9d9d] group-hover:text-white" suppressHydrationWarning>
                           {formatSubmissionDate(submission.submittedAt)}
                         </td>
                         {form.fields.map((field) => {
@@ -431,7 +431,7 @@ export function ResponseDocument({ form }: { form: FormFile }) {
                             {selectedSubmission.respondentEmail ?? "Anonymous"}
                           </span>
                           <span className="text-[#9d9d9d]">Timestamp:</span>
-                          <span className="text-white font-medium">
+                          <span className="text-white font-medium" suppressHydrationWarning>
                             {formatSubmissionDate(selectedSubmission.submittedAt)}
                           </span>
                         </div>

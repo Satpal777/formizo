@@ -23,7 +23,7 @@ export function StatusBar({
       <div className="flex items-center gap-2.5">
         <GitBranch className="size-3.5" />
         {activeForm ? (
-          <span className="text-[#c7dcff]">
+          <span className="text-[#c7dcff]" suppressHydrationWarning>
             {activeForm.name} / {activeForm.status}
             {activeForm.dirty ? " / unsaved" : ""}
             {" / "}

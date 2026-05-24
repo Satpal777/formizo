@@ -299,9 +299,8 @@ export default function PricingPage() {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-[#2b2b2b] bg-[#1a1a1c] py-8 text-center text-[11px] text-[#858585]">
-        <p>© {new Date().getFullYear()} Formizo SaaS. All rights reserved.</p>
+        <p>© 2026 Formizo SaaS. All rights reserved.</p>
         <p className="mt-1 text-[#555555]">Built for developers who value performance and accessibility.</p>
       </footer>
     </div>

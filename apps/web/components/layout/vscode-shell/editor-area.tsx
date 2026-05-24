@@ -180,7 +180,7 @@ function EditorToolbar({
         <GitBranch className="size-4 text-[#89d185]" />
         <span className="truncate">{activeForm ? `${activeForm.status}${activeForm.dirty ? " / unsaved" : ""}` : "docs"}</span>
         {activeForm ? (
-          <span className="hidden shrink-0 text-[#858585] sm:inline">
+          <span className="hidden shrink-0 text-[#858585] sm:inline" suppressHydrationWarning>
             Last saved {formatLastUpdated(activeForm.lastUpdatedAt)}
           </span>
         ) : null}
