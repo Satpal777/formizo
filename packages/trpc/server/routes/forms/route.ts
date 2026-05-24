@@ -1,10 +1,14 @@
 import {
-  addFormFieldInput,
-  addFormFieldOutput,
+  addFormFieldsInput,
+  addFormFieldsOutput,
   createFormProcedureInput,
   createFormOutput,
+  deleteFormFieldsInput,
+  deleteFormFieldsOutput,
   getFormsByUserIdInput,
   getFormsByUserIdOutput,
+  updateFormFieldsInput,
+  updateFormFieldsOutput,
   updateFormInput,
   updateFormOutput,
 } from "./model";
@@ -72,20 +76,54 @@ export const formsRouter = router({
       return formsService.updateForm(input);
     }),
 
-  addFormField: protectedProcedure
+  addFormFields: protectedProcedure
     .meta({
       openapi: {
         method: "POST",
-        path: getPath("/addFormField"),
+        path: getPath("/addFormFields"),
         tags: TAGS,
         protect: true,
-        summary: "Add a field to a form",
-        description: "Add a field and optional choices to an existing form.",
+        summary: "Add fields to forms",
+        description: "Add one or more fields and optional choices to existing forms.",
       },
     })
-    .input(addFormFieldInput)
-    .output(addFormFieldOutput)
+    .input(addFormFieldsInput)
+    .output(addFormFieldsOutput)
     .mutation(async ({ input }) => {
-      return formsService.addFormField(input);
+      return formsService.addFormFields(input);
+    }),
+
+  updateFormFields: protectedProcedure
+    .meta({
+      openapi: {
+        method: "PATCH",
+        path: getPath("/updateFormFields"),
+        tags: TAGS,
+        protect: true,
+        summary: "Update form fields",
+        description: "Update one or more form fields and optionally replace their choices.",
+      },
+    })
+    .input(updateFormFieldsInput)
+    .output(updateFormFieldsOutput)
+    .mutation(async ({ input }) => {
+      return formsService.updateFormFields(input);
+    }),
+
+  deleteFormFields: protectedProcedure
+    .meta({
+      openapi: {
+        method: "DELETE",
+        path: getPath("/deleteFormFields"),
+        tags: TAGS,
+        protect: true,
+        summary: "Delete form fields",
+        description: "Delete one or more form fields and their choices.",
+      },
+    })
+    .input(deleteFormFieldsInput)
+    .output(deleteFormFieldsOutput)
+    .mutation(async ({ input }) => {
+      return formsService.deleteFormFields(input);
     }),
 });

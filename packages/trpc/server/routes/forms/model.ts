@@ -127,7 +127,7 @@ const formFieldOptionInput = z.object({
   order: z.number().int().default(1000).describe("The option display order"),
 });
 
-export const addFormFieldInput = z.object({
+const formFieldValues = {
   formId: requiredString.uuid().describe("The id of the form to add the input field to"),
   type: formFieldType.describe("The type of field to add"),
   title: requiredString.max(500).describe("The field title"),
@@ -140,9 +140,44 @@ export const addFormFieldInput = z.object({
     .array(formFieldOptionInput)
     .optional()
     .describe("Selectable options for choice fields"),
+};
+
+const formFieldInput = z.object(formFieldValues);
+
+export const addFormFieldsInput = z.object({
+  fields: z.array(formFieldInput).min(1).describe("The form fields to add"),
 });
 
-export const addFormFieldOutput = z.object({
+const formFieldWriteResult = z.object({
   id: requiredString.describe("The id of the created field"),
-  optionIds: z.array(requiredString).describe("The ids of created field options").default([]),
+  optionIds: z.array(requiredString).describe("The ids of created field options"),
+});
+
+export const addFormFieldsOutput = z.object({
+  fields: z.array(formFieldWriteResult).describe("The created form fields"),
+});
+
+const updateFormFieldValues = formFieldInput.omit({ formId: true }).partial();
+
+export const updateFormFieldsInput = z.object({
+  fields: z
+    .array(
+      updateFormFieldValues.extend({
+        id: requiredString.uuid().describe("The id of the field to update"),
+      }),
+    )
+    .min(1)
+    .describe("The form fields to update"),
+});
+
+export const updateFormFieldsOutput = z.object({
+  fields: z.array(formFieldWriteResult).describe("The updated form fields"),
+});
+
+export const deleteFormFieldsInput = z.object({
+  ids: z.array(requiredString.uuid()).min(1).describe("The ids of the fields to delete"),
+});
+
+export const deleteFormFieldsOutput = z.object({
+  ids: z.array(requiredString).describe("The ids of the deleted fields"),
 });

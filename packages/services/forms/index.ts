@@ -1,15 +1,19 @@
 import crypto from "node:crypto";
 import type {
-  AddFormFieldInput,
-  AddFormFieldOutput,
+  AddFormFieldsInput,
+  AddFormFieldsOutput,
   CreateFormInput,
   CreateFormOutput,
+  DeleteFormFieldsInput,
+  DeleteFormFieldsOutput,
   GetFormsByUserIdInput,
   GetFormsByUserIdOutput,
+  UpdateFormFieldsInput,
+  UpdateFormFieldsOutput,
   UpdateFormInput,
   UpdateFormOutput,
 } from "./model";
-import { db, desc, eq } from "@repo/database";
+import { db, desc, eq, inArray } from "@repo/database";
 import {
   formFieldOptions,
   formFields,
@@ -32,6 +36,8 @@ function createSlug(title: string) {
 
 type FormValues = Omit<CreateFormInput, "creatorId"> | Omit<UpdateFormInput, "id">;
 type FormWriteValues = Partial<Omit<NewForm, "creatorId" | "slug">>;
+type FormFieldValues = Omit<AddFormFieldsInput["fields"][number], "options">;
+type FormFieldWriteValues = Partial<NewFormField>;
 
 function setIfDefined<T extends object, K extends keyof T>(
   values: T,
@@ -74,6 +80,21 @@ function buildFormValues(input: FormValues): FormWriteValues {
 
 function hasFormValues(values: FormWriteValues) {
   return Object.keys(values).length > 0;
+}
+
+function buildFormFieldValues(input: Partial<FormFieldValues>): FormFieldWriteValues {
+  const fieldValues: FormFieldWriteValues = {};
+
+  setIfDefined(fieldValues, "formId", input.formId);
+  setIfDefined(fieldValues, "type", input.type);
+  setIfDefined(fieldValues, "title", input.title);
+  setIfDefined(fieldValues, "description", input.description);
+  setIfDefined(fieldValues, "placeholder", input.placeholder);
+  setIfDefined(fieldValues, "order", input.order);
+  setIfDefined(fieldValues, "validation", input.validation);
+  setIfDefined(fieldValues, "properties", input.properties);
+
+  return fieldValues;
 }
 
 export class FormsService {
@@ -141,31 +162,110 @@ export class FormsService {
     return { id: updatedForm.id };
   }
 
-  async addFormField(input: AddFormFieldInput): Promise<AddFormFieldOutput> {
-    const { options, ...fieldValues } = input;
-    const newField: NewFormField = fieldValues;
+  async addFormFields(input: AddFormFieldsInput): Promise<AddFormFieldsOutput> {
+    const fields = await db.transaction(async (tx) => {
+      const createdFields = await tx
+        .insert(formFields)
+        .values(input.fields.map(({ options: _options, ...field }) => field))
+        .returning({ id: formFields.id });
 
-    const [createdField] = await db
-      .insert(formFields)
-      .values(newField)
-      .returning({ id: formFields.id });
+      if (createdFields.length !== input.fields.length) {
+        throw new Error("Failed to add form fields");
+      }
 
-    if (!createdField) {
-      throw new Error("Failed to add form field");
-    }
+      const fieldsWithOptions = [];
 
-    if (!options?.length) {
-      return { id: createdField.id, optionIds: [] };
-    }
+      for (const [index, createdField] of createdFields.entries()) {
+        const options = input.fields[index]?.options;
 
-    const createdOptions = await db
-      .insert(formFieldOptions)
-      .values(options.map((option) => ({ ...option, fieldId: createdField.id })))
-      .returning({ id: formFieldOptions.id });
+        if (!options?.length) {
+          fieldsWithOptions.push({ id: createdField.id, optionIds: [] });
+          continue;
+        }
 
-    return {
-      id: createdField.id,
-      optionIds: createdOptions.map((option) => option.id),
-    };
+        const createdOptions = await tx
+          .insert(formFieldOptions)
+          .values(options.map((option) => ({ ...option, fieldId: createdField.id })))
+          .returning({ id: formFieldOptions.id });
+
+        fieldsWithOptions.push({
+          id: createdField.id,
+          optionIds: createdOptions.map((option) => option.id),
+        });
+      }
+
+      return fieldsWithOptions;
+    });
+
+    return { fields };
+  }
+
+  async updateFormFields(input: UpdateFormFieldsInput): Promise<UpdateFormFieldsOutput> {
+    const fields = await db.transaction(async (tx) => {
+      const updatedFields = [];
+
+      for (const field of input.fields) {
+        const { id, options, ...values } = field;
+        const fieldValues = buildFormFieldValues(values);
+
+        const [updatedField] = await tx
+          .update(formFields)
+          .set({
+            ...fieldValues,
+            updatedAt: new Date(),
+          })
+          .where(eq(formFields.id, id))
+          .returning({ id: formFields.id });
+
+        if (!updatedField) {
+          throw new Error("Failed to update form field");
+        }
+
+        if (options === undefined) {
+          updatedFields.push({ id: updatedField.id, optionIds: [] });
+          continue;
+        }
+
+        await tx.delete(formFieldOptions).where(eq(formFieldOptions.fieldId, id));
+
+        if (!options.length) {
+          updatedFields.push({ id: updatedField.id, optionIds: [] });
+          continue;
+        }
+
+        const createdOptions = await tx
+          .insert(formFieldOptions)
+          .values(options.map((option) => ({ ...option, fieldId: id })))
+          .returning({ id: formFieldOptions.id });
+
+        updatedFields.push({
+          id: updatedField.id,
+          optionIds: createdOptions.map((option) => option.id),
+        });
+      }
+
+      return updatedFields;
+    });
+
+    return { fields };
+  }
+
+  async deleteFormFields(input: DeleteFormFieldsInput): Promise<DeleteFormFieldsOutput> {
+    const ids = await db.transaction(async (tx) => {
+      await tx.delete(formFieldOptions).where(inArray(formFieldOptions.fieldId, input.ids));
+
+      const deletedFields = await tx
+        .delete(formFields)
+        .where(inArray(formFields.id, input.ids))
+        .returning({ id: formFields.id });
+
+      if (deletedFields.length !== input.ids.length) {
+        throw new Error("Failed to delete form fields");
+      }
+
+      return deletedFields.map((field) => field.id);
+    });
+
+    return { ids };
   }
 }
