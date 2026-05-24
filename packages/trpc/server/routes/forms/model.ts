@@ -94,6 +94,11 @@ export const updateFormInput = updateFormValues.extend({
   id: requiredString.uuid().describe("The id of the form to update"),
 });
 
+export const publishFormInput = z.object({
+  id: requiredString.uuid().describe("The id of the form to publish"),
+  title: formValues.title.optional().describe("The title to save before publishing"),
+});
+
 export const createFormOutput = z.object({
   id: requiredString.describe("The id of the created form"),
   updatedAt: z.date().describe("The form update date"),
@@ -102,6 +107,13 @@ export const createFormOutput = z.object({
 export const updateFormOutput = z.object({
   id: requiredString.describe("The id of the updated form"),
   updatedAt: z.date().describe("The form update date"),
+});
+
+export const publishFormOutput = z.object({
+  id: requiredString.describe("The id of the published form"),
+  status: z.literal("published").describe("The published form status"),
+  updatedAt: z.date().describe("The form update date"),
+  publishedAt: z.date().describe("The form publish date"),
 });
 
 export const getFormsByUserIdInput = z.void();

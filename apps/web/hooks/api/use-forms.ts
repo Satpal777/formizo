@@ -47,6 +47,19 @@ export function useUpdateForm() {
   });
 }
 
+export function usePublishForm() {
+  const utils = trpc.useUtils();
+
+  return trpc.forms.publishForm.useMutation({
+    onSuccess: () => {
+      utils.forms.getFormsByUserId.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to publish form");
+    },
+  });
+}
+
 export function useAddFormFields() {
   return trpc.forms.addFormFields.useMutation({
     onError: (error) => {

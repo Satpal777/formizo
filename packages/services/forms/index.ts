@@ -10,6 +10,8 @@ import type {
   GetFormFieldsOutput,
   GetFormsByUserIdInput,
   GetFormsByUserIdOutput,
+  PublishFormInput,
+  PublishFormOutput,
   UpdateFormFieldsInput,
   UpdateFormFieldsOutput,
   UpdateFormInput,
@@ -221,6 +223,39 @@ export class FormsService {
     }
 
     return { id: updatedForm.id, updatedAt: updatedForm.updatedAt };
+  }
+
+  async publishForm(input: PublishFormInput): Promise<PublishFormOutput> {
+    const publishedAt = new Date();
+    const updateValues: Partial<NewForm> = {
+      status: "published",
+      publishedAt,
+      updatedAt: publishedAt,
+    };
+
+    setIfDefined(updateValues, "title", input.title);
+
+    const [publishedForm] = await db
+      .update(forms)
+      .set(updateValues)
+      .where(eq(forms.id, input.id))
+      .returning({
+        id: forms.id,
+        status: forms.status,
+        updatedAt: forms.updatedAt,
+        publishedAt: forms.publishedAt,
+      });
+
+    if (!publishedForm?.publishedAt || publishedForm.status !== "published") {
+      throw new Error("Failed to publish form");
+    }
+
+    return {
+      id: publishedForm.id,
+      status: "published",
+      updatedAt: publishedForm.updatedAt,
+      publishedAt: publishedForm.publishedAt,
+    };
   }
 
   async addFormFields(input: AddFormFieldsInput): Promise<AddFormFieldsOutput> {

@@ -9,6 +9,8 @@ import {
   getFormFieldsOutput,
   getFormsByUserIdInput,
   getFormsByUserIdOutput,
+  publishFormInput,
+  publishFormOutput,
   updateFormFieldsInput,
   updateFormFieldsOutput,
   updateFormInput,
@@ -93,6 +95,23 @@ export const formsRouter = router({
     .output(updateFormOutput)
     .mutation(async ({ input }) => {
       return formsService.updateForm(input);
+    }),
+
+  publishForm: protectedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/publishForm"),
+        tags: TAGS,
+        protect: true,
+        summary: "Publish a form",
+        description: "Save publish metadata and mark a form as published.",
+      },
+    })
+    .input(publishFormInput)
+    .output(publishFormOutput)
+    .mutation(async ({ input }) => {
+      return formsService.publishForm(input);
     }),
 
   addFormFields: protectedProcedure

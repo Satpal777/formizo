@@ -17,6 +17,7 @@ import {
   useDeleteFormFields,
   useGetFormFields,
   useGetFormsByUserId,
+  usePublishForm,
   useUpdateForm,
   useUpdateFormFields,
 } from "~/hooks/api/use-forms";
@@ -104,6 +105,7 @@ export function AppShell() {
   const formsQuery = useGetFormsByUserId(isMeAuthenticated);
   const createFormMutation = useCreateForm();
   const updateFormMutation = useUpdateForm();
+  const publishFormMutation = usePublishForm();
   const addFormFieldsMutation = useAddFormFields();
   const updateFormFieldsMutation = useUpdateFormFields();
   const deleteFormFieldsMutation = useDeleteFormFields();
@@ -555,13 +557,12 @@ export function AppShell() {
     }
 
     let syncedForm: Awaited<ReturnType<typeof syncFormFields>>;
-    let savedForm: Awaited<ReturnType<typeof updateFormMutation.mutateAsync>>;
+    let publishedForm: Awaited<ReturnType<typeof publishFormMutation.mutateAsync>>;
 
     try {
       syncedForm = await syncFormFields(targetForm);
-      savedForm = await updateFormMutation.mutateAsync({
+      publishedForm = await publishFormMutation.mutateAsync({
         id: targetForm.id,
-        status: "published",
         title: targetForm.name.replace(/\.form$/, ""),
       });
     } catch {
@@ -576,13 +577,15 @@ export function AppShell() {
               content: syncedForm.content,
               fields: syncedForm.fields,
               savedFields: syncedForm.fields.map((field) => ({ ...field })),
-              status: "published",
+              status: publishedForm.status,
               dirty: false,
-              lastUpdatedAt: savedForm.updatedAt,
+              lastUpdatedAt: publishedForm.updatedAt,
             }
           : form,
       ),
     );
+
+    toast.success("Form published");
   }
 
   function handleCreateFormFromCommand() {
