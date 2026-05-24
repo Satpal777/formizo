@@ -16,6 +16,8 @@ import {
 import { getResponseDocumentId } from "~/features/forms/lib/documents";
 import type { ActiveDocument, FormFile } from "~/features/forms/types";
 
+import { toast } from "sonner";
+
 type ExplorerPanelProps = {
   activeDocument: ActiveDocument;
   forms: FormFile[];
@@ -24,6 +26,8 @@ type ExplorerPanelProps = {
   onRenameForm: (formId: string, name: string) => Promise<void>;
   onSelectDocument: (documentId: ActiveDocument) => void;
   onRequestAuth: () => void;
+  currentPlan?: "free" | "pro";
+  onLimitReached?: () => void;
 };
 
 const projectItems = [
@@ -40,6 +44,8 @@ export function ExplorerPanel({
   onRenameForm,
   onSelectDocument,
   onRequestAuth,
+  currentPlan = "free",
+  onLimitReached,
 }: ExplorerPanelProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
@@ -112,6 +118,11 @@ export function ExplorerPanel({
               return;
             }
 
+            if (currentPlan === "free" && forms.length >= 10) {
+              onLimitReached?.();
+              return;
+            }
+
             startCreating();
           }}
           title={isAuthenticated ? "New Form" : "Sign in to create forms"}
@@ -142,7 +153,7 @@ export function ExplorerPanel({
           />
         </TreeFolder>
 
-        <TreeFolder label="forms" open>
+        <TreeFolder label={currentPlan === "free" ? `forms (${forms.length}/10)` : `forms (${forms.length})`} open>
           {forms.map((form) => (
             <div className="group/form relative" key={form.id}>
               {renamingFormId === form.id ? (
@@ -284,22 +295,35 @@ export function ExplorerPanel({
 function TreeFolder({
   children,
   label,
-  open,
+  open = false,
 }: {
   children?: React.ReactNode;
   label: string;
   open?: boolean;
 }) {
-  const FolderIcon = open ? FolderOpen : Folder;
+  const [isOpen, setIsOpen] = useState(open);
+  const FolderIcon = isOpen ? FolderOpen : Folder;
 
   return (
-    <div>
-      <button className="flex h-[24px] w-full items-center gap-1.5 px-3 text-left text-[#cccccc] hover:bg-[#2a2d2e]">
-        {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-        <FolderIcon className={open ? "size-4 text-[#d7ba7d]" : "size-4 text-[#8cc265]"} />
+    <div className="select-none">
+      <button
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex h-[24px] w-full items-center gap-1.5 px-3 text-left text-[#cccccc] hover:bg-[#2a2d2e] cursor-pointer"
+        type="button"
+      >
+        <ChevronRight
+          className={`size-3.5 shrink-0 text-[#858585] transition-transform duration-150 ${
+            isOpen ? "rotate-90" : ""
+          }`}
+        />
+        <FolderIcon
+          className={`size-4 shrink-0 transition-colors duration-150 ${
+            isOpen ? "text-[#d7ba7d]" : "text-[#8cc265]"
+          }`}
+        />
         <span className="min-w-0 truncate">{label}</span>
       </button>
-      {open ? children : null}
+      {isOpen ? children : null}
     </div>
   );
 }

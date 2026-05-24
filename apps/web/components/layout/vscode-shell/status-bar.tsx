@@ -1,4 +1,4 @@
-import { Bell, CircleAlert, CircleX, GitBranch, Save, Send, UsersRound } from "lucide-react";
+import { Bell, CircleAlert, CircleX, GitBranch, Save, Send, UsersRound, Sparkles, Zap } from "lucide-react";
 
 import { formatLastUpdated } from "~/features/forms/lib/formatters";
 import type { FormFile } from "~/features/forms/types";
@@ -7,10 +7,16 @@ export function StatusBar({
   activeForm,
   onPublishForm,
   onSaveDraft,
+  currentPlan = "free",
+  formsCount = 0,
+  onSelectDocument,
 }: {
   activeForm: FormFile | null;
   onPublishForm: (formId?: string) => void;
   onSaveDraft: (formId?: string) => void;
+  currentPlan?: "free" | "pro";
+  formsCount?: number;
+  onSelectDocument?: (docId: string) => void;
 }) {
   return (
     <footer className="col-span-3 flex items-center justify-between border-t border-[#2b2b2b] bg-[#181818] px-2.5 text-[11px] text-white">
@@ -30,6 +36,26 @@ export function StatusBar({
         <span className="flex items-center gap-1">
           <CircleAlert className="size-3.5" /> 0
         </span>
+        
+        {currentPlan === "pro" ? (
+          <button
+            onClick={() => onSelectDocument?.("pricing.md")}
+            className="flex items-center gap-1.5 hover:text-[#c7dcff] ml-3 text-[#3794ff] hover:underline bg-transparent border-none cursor-pointer p-0"
+            type="button"
+          >
+            <Sparkles className="size-3.5 shrink-0" />
+            <span>Pro Plan: {formsCount} forms</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => onSelectDocument?.("pricing.md")}
+            className="flex items-center gap-1.5 hover:text-[#c7dcff] ml-3 text-[#89d185] hover:underline bg-transparent border-none cursor-pointer p-0"
+            type="button"
+          >
+            <Zap className="size-3.5 shrink-0" />
+            <span>Developer Plan: {formsCount}/10 forms</span>
+          </button>
+        )}
       </div>
       <div className="flex items-center gap-4">
         {activeForm ? (

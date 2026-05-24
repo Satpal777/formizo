@@ -1,4 +1,6 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, uuid, varchar, text, timestamp, boolean } from "drizzle-orm/pg-core";
+
+export const userPlan = pgEnum("user_plan", ["developer", "pro"]);
 
 /**
  * Users table definition for authentication and user management.
@@ -10,6 +12,7 @@ export const users = pgTable("users", {
 
   name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }).notNull().unique(),
+  plan: userPlan("plan").notNull().default("developer"),
 
   passwordSalt: text("password_salt"),
   passwordHash: text("password_hash"),

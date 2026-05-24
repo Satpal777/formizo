@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+const planFormLimitSchema = z.preprocess((value) => {
+  if (typeof value === "string") {
+    const normalizedValue = value.trim().toLowerCase();
+
+    if (normalizedValue === "unlimited" || normalizedValue === "none" || normalizedValue === "null") {
+      return null;
+    }
+  }
+
+  return value;
+}, z.union([z.coerce.number().int().nonnegative(), z.null()]));
+
 const envSchema = z.object({
   DATABASE_URL: z.string().describe("The URL of the database to connect to"),
   JWT_SECRET: z.string().describe("The secret key used for signing JWT tokens"),
@@ -23,6 +35,12 @@ const envSchema = z.object({
     .url()
     .default("http://localhost:3000/verify-email")
     .describe("Base URL used to build email verification links"),
+  DEVELOPER_PLAN_MAX_FORMS: planFormLimitSchema
+    .default(10)
+    .describe("Maximum forms allowed on the Developer plan"),
+  PRO_PLAN_MAX_FORMS: planFormLimitSchema
+    .default(null)
+    .describe("Maximum forms allowed on the Pro plan; use unlimited for no limit"),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

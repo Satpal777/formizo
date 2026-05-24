@@ -36,6 +36,8 @@ import {
   type NewFormResponse,
 } from "@repo/database/models/form";
 import { generatePasswordHash, hashPassword } from "../utils/utils";
+import { getFormPlanLimit, type FormPlan } from "./plans";
+import { users } from "@repo/database/models/user";
 
 function createSlug(title: string) {
   const slug = title
@@ -193,6 +195,35 @@ function validateRequiredAnswers(fields: FieldWithOptions[], answersByFieldId: M
 }
 
 export class FormsService {
+  private async validateCreateFormLimit(creatorId: string) {
+    const [creator] = await db
+      .select({ plan: users.plan })
+      .from(users)
+      .where(eq(users.id, creatorId))
+      .limit(1);
+
+    if (!creator) {
+      throw new Error("User not found");
+    }
+
+    const limit = getFormPlanLimit(creator.plan as FormPlan);
+
+    if (limit.maxForms === null) {
+      return;
+    }
+
+    const creatorForms = await db
+      .select({ id: forms.id })
+      .from(forms)
+      .where(eq(forms.creatorId, creatorId));
+
+    if (creatorForms.length >= limit.maxForms) {
+      throw new Error(
+        `Developer plan allows up to ${limit.maxForms} forms. Upgrade to Pro for unlimited forms.`,
+      );
+    }
+  }
+
   async getFormsByUserId(input: GetFormsByUserIdInput): Promise<GetFormsByUserIdOutput> {
     const userForms = await db
       .select({
@@ -467,6 +498,8 @@ export class FormsService {
   }
 
   async createForm(input: CreateFormInput): Promise<CreateFormOutput> {
+    await this.validateCreateFormLimit(input.creatorId);
+
     const slug = createSlug(input.title);
     const newForm: NewForm = {
       ...buildFormValues(input),

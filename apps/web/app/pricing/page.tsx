@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, HelpCircle, ArrowLeft, Sparkles, Zap, Shield, Globe, Lock, Mail, X } from "lucide-react";
+import { Check, HelpCircle, ArrowLeft, Sparkles, Zap, X } from "lucide-react";
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");

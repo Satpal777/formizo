@@ -43,6 +43,13 @@
       "when": 1779625678933,
       "tag": "0005_daily_tana_nile",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779647225616,
+      "tag": "0006_oval_madame_web",
+      "breakpoints": true
     }
   ]
 }

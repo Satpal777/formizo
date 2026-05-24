@@ -1,4 +1,4 @@
-import { Sparkles, Check, X } from "lucide-react";
+import { Sparkles, Check } from "lucide-react";
 import Link from "next/link";
 
 export function WelcomeDocument({
@@ -216,5 +216,4 @@ export function PricingDocument() {
     </div>
   );
 }
-
 

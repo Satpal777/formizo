@@ -17,6 +17,7 @@ import { ExplorerPanel } from "./vscode-shell/explorer-panel";
 import { StatusBar } from "./vscode-shell/status-bar";
 import { TitleBar } from "./vscode-shell/title-bar";
 import { AuthModal } from "~/features/auth/components/auth-modal";
+import { LimitReachedModal } from "./vscode-shell/limit-reached-modal";
 import { getResponseFormId } from "~/features/forms/lib/documents";
 import {
   buildFormContent,
@@ -52,6 +53,7 @@ export function AppShell() {
   const [currentPlan, setCurrentPlan] = useState<"free" | "pro">("free");
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [isExplorerCollapsed, setIsExplorerCollapsed] = useState(false);
   const activeResponseFormId = getResponseFormId(activeDocument);
   const activeFormId = activeDocument.endsWith(".md") || activeResponseFormId ? null : activeDocument;
@@ -196,6 +198,11 @@ export function AppShell() {
   async function handleCreateForm(name: string) {
     if (!isAuthenticated) {
       setIsAuthModalOpen(true);
+      return;
+    }
+
+    if (currentPlan === "free" && forms.length >= 10) {
+      setIsLimitModalOpen(true);
       return;
     }
 
@@ -620,6 +627,12 @@ export function AppShell() {
       return;
     }
 
+    if (currentPlan === "free" && forms.length >= 10) {
+      setIsLimitModalOpen(true);
+      setIsCommandPaletteOpen(false);
+      return;
+    }
+
     void handleCreateForm(`survey-${forms.length + 1}`);
     setIsCommandPaletteOpen(false);
   }
@@ -673,7 +686,7 @@ export function AppShell() {
               onResize={(size) => setIsExplorerCollapsed(size.asPercentage <= 1)}
               panelRef={explorerPanelRef}
             >
-              <ExplorerPanel
+               <ExplorerPanel
                 activeDocument={activeDocument}
                 forms={forms}
                 isAuthenticated={isAuthenticated}
@@ -681,6 +694,8 @@ export function AppShell() {
                 onRenameForm={handleRenameForm}
                 onSelectDocument={setActiveDocument}
                 onRequestAuth={() => setIsAuthModalOpen(true)}
+                currentPlan={currentPlan}
+                onLimitReached={() => setIsLimitModalOpen(true)}
               />
             </Panel>
             <Separator className="group relative w-1 shrink-0 bg-[#2b2b2b] transition hover:bg-[#0078d4]">
@@ -715,10 +730,13 @@ export function AppShell() {
           </Group>
         </div>
       </div>
-      <StatusBar
+       <StatusBar
         activeForm={activeForm}
         onPublishForm={handlePublish}
         onSaveDraft={handleSaveDraft}
+        currentPlan={currentPlan}
+        formsCount={forms.length}
+        onSelectDocument={setActiveDocument}
       />
       <CommandPalette
         isAuthenticated={isAuthenticated}
@@ -752,6 +770,14 @@ export function AppShell() {
         onSuccess={() => {
           setIsAuthenticated(true);
           setIsAuthModalOpen(false);
+        }}
+      />
+      <LimitReachedModal
+        isOpen={isLimitModalOpen}
+        onClose={() => setIsLimitModalOpen(false)}
+        onUpgrade={() => {
+          setIsLimitModalOpen(false);
+          setActiveDocument("pricing.md");
         }}
       />
     </main>

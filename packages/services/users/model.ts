@@ -42,6 +42,7 @@ export const meOutput = z.object({
     name: z.string().nullable().describe("The name of the authenticated user"),
     email: z.email().describe("The email of the authenticated user"),
     emailVerified: z.boolean().describe("Whether the user's email is verified"),
+    plan: z.enum(["developer", "pro"]).describe("The user's pricing plan"),
   }),
 });
 

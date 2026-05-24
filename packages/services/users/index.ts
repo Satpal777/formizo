@@ -240,6 +240,7 @@ export class UserService {
         name: user.name,
         email: user.email,
         emailVerified: user.emailVerified,
+        plan: user.plan,
       },
     };
   }
