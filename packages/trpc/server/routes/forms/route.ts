@@ -9,6 +9,8 @@ import {
   getFormFieldsOutput,
   getFormsByUserIdInput,
   getFormsByUserIdOutput,
+  getPublishedFormBySlugInput,
+  getPublishedFormBySlugOutput,
   publishFormInput,
   publishFormOutput,
   updateFormFieldsInput,
@@ -17,13 +19,35 @@ import {
   updateFormOutput,
 } from "./model";
 import { formsService } from "../../services";
-import { protectedProcedure, router } from "../../trpc";
+import { getOptionalUserId, protectedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
 const TAGS = ["Forms"];
 const getPath = generatePath("/forms");
 
 export const formsRouter = router({
+  getPublishedFormBySlug: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getPublishedFormBySlug"),
+        tags: TAGS,
+        protect: false,
+        summary: "Get a published form by slug",
+        description: "Return a published form and fields for respondents.",
+      },
+    })
+    .input(getPublishedFormBySlugInput)
+    .output(getPublishedFormBySlugOutput)
+    .query(async ({ ctx, input }) => {
+      const viewerUserId = await getOptionalUserId(ctx);
+
+      return formsService.getPublishedFormBySlug({
+        ...input,
+        viewerUserId: viewerUserId ?? undefined,
+      });
+    }),
+
   getFormsByUserId: protectedProcedure
     .meta({
       openapi: {

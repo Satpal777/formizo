@@ -37,7 +37,7 @@ export const router = tRPCContext.router;
 
 export const publicProcedure = tRPCContext.procedure;
 
-function getUserIdFromToken(token: string) {
+export function getUserIdFromToken(token: string) {
   const decodedToken = verifyJWTToken(token, env.JWT_SECRET);
 
   if (!decodedToken || typeof decodedToken === "string") {
@@ -63,6 +63,13 @@ async function refreshAuthFromCookie(ctx: Awaited<ReturnType<typeof createContex
     clearAuthCookie(ctx);
     return null;
   }
+}
+
+export async function getOptionalUserId(ctx: Awaited<ReturnType<typeof createContext>>) {
+  const token = ctx.getCookie("token");
+  const userId = token ? getUserIdFromToken(token) : await refreshAuthFromCookie(ctx);
+
+  return userId ?? (token ? await refreshAuthFromCookie(ctx) : null);
 }
 
 export const protectedProcedure = tRPCContext.procedure.use(async ({ ctx, next }) => {

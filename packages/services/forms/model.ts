@@ -144,6 +144,11 @@ export const getFormFieldsInput = z.object({
   formId: requiredString.uuid().describe("The id of the form whose fields should be returned"),
 });
 
+export const getPublishedFormBySlugInput = z.object({
+  slug: requiredString.describe("The published form slug"),
+  viewerUserId: requiredString.uuid().optional().describe("The authenticated respondent id"),
+});
+
 const formFieldOptionInput = z.object({
   label: requiredString.max(255).describe("The option label shown to respondents"),
   value: requiredString.max(255).describe("The stored option value"),
@@ -228,6 +233,29 @@ export const getFormFieldsOutput = z.object({
   fields: z.array(formFieldItem).describe("The form fields"),
 });
 
+export const publishedForm = z.object({
+  id: requiredString.describe("The form id"),
+  title: requiredString.describe("The form title"),
+  description: z.string().nullable().describe("The form description"),
+  slug: requiredString.describe("The form slug"),
+  accessMode: formAccessMode.describe("The access mode of the form"),
+  allowAnonymousResponses: z.boolean().describe("Whether anonymous responses are allowed"),
+  collectEmail: z.boolean().describe("Whether to collect email addresses from respondents"),
+  showProgressBar: z.boolean().describe("Whether to show a progress bar to respondents"),
+  shuffleFields: z.boolean().describe("Whether to shuffle fields for respondents"),
+  redirectUrl: z.string().nullable().describe("The URL to redirect respondents to after submit"),
+  thankYouMessage: z.string().nullable().describe("The thank you message"),
+  fields: z.array(formFieldItem).describe("The published form fields"),
+});
+
+export const getPublishedFormBySlugOutput = z.object({
+  form: publishedForm.nullable().describe("The published form, if found"),
+  unavailableReason: z
+    .enum(["not_found", "auth_required"])
+    .optional()
+    .describe("Why the form is unavailable"),
+});
+
 export type CreateFormInput = z.infer<typeof createFormInput>;
 export type CreateFormOutput = z.infer<typeof createFormOutput>;
 export type UpdateFormInput = z.infer<typeof updateFormInput>;
@@ -238,6 +266,8 @@ export type GetFormsByUserIdInput = z.infer<typeof getFormsByUserIdInput>;
 export type GetFormsByUserIdOutput = z.infer<typeof getFormsByUserIdOutput>;
 export type GetFormFieldsInput = z.infer<typeof getFormFieldsInput>;
 export type GetFormFieldsOutput = z.infer<typeof getFormFieldsOutput>;
+export type GetPublishedFormBySlugInput = z.infer<typeof getPublishedFormBySlugInput>;
+export type GetPublishedFormBySlugOutput = z.infer<typeof getPublishedFormBySlugOutput>;
 export type AddFormFieldsInput = z.infer<typeof addFormFieldsInput>;
 export type AddFormFieldsOutput = z.infer<typeof addFormFieldsOutput>;
 export type UpdateFormFieldsInput = z.infer<typeof updateFormFieldsInput>;

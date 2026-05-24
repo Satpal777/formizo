@@ -8,6 +8,8 @@ import type {
   DeleteFormFieldsOutput,
   GetFormFieldsInput,
   GetFormFieldsOutput,
+  GetPublishedFormBySlugInput,
+  GetPublishedFormBySlugOutput,
   GetFormsByUserIdInput,
   GetFormsByUserIdOutput,
   PublishFormInput,
@@ -17,7 +19,7 @@ import type {
   UpdateFormInput,
   UpdateFormOutput,
 } from "./model";
-import { asc, db, desc, eq, inArray } from "@repo/database";
+import { and, asc, db, desc, eq, inArray } from "@repo/database";
 import {
   formFieldOptions,
   formFields,
@@ -101,6 +103,59 @@ function buildFormFieldValues(input: Partial<FormFieldValues>): FormFieldWriteVa
   return fieldValues;
 }
 
+async function getFieldsWithOptions(formId: string) {
+  const fields = await db
+    .select({
+      id: formFields.id,
+      formId: formFields.formId,
+      type: formFields.type,
+      title: formFields.title,
+      description: formFields.description,
+      placeholder: formFields.placeholder,
+      order: formFields.order,
+      validation: formFields.validation,
+      properties: formFields.properties,
+      createdAt: formFields.createdAt,
+      updatedAt: formFields.updatedAt,
+    })
+    .from(formFields)
+    .where(eq(formFields.formId, formId))
+    .orderBy(asc(formFields.order), asc(formFields.createdAt));
+
+  if (!fields.length) {
+    return [];
+  }
+
+  const options = await db
+    .select({
+      id: formFieldOptions.id,
+      fieldId: formFieldOptions.fieldId,
+      label: formFieldOptions.label,
+      value: formFieldOptions.value,
+      order: formFieldOptions.order,
+    })
+    .from(formFieldOptions)
+    .where(inArray(formFieldOptions.fieldId, fields.map((field) => field.id)))
+    .orderBy(asc(formFieldOptions.order), asc(formFieldOptions.createdAt));
+
+  const optionsByFieldId = new Map<string, Omit<(typeof options)[number], "fieldId">[]>();
+
+  for (const option of options) {
+    const { fieldId, ...optionValues } = option;
+    const fieldOptions = optionsByFieldId.get(fieldId) ?? [];
+
+    fieldOptions.push(optionValues);
+    optionsByFieldId.set(fieldId, fieldOptions);
+  }
+
+  return fields.map((field) => ({
+    ...field,
+    validation: field.validation as Record<string, unknown> | null,
+    properties: field.properties as Record<string, unknown> | null,
+    options: optionsByFieldId.get(field.id) ?? [],
+  }));
+}
+
 export class FormsService {
   async getFormsByUserId(input: GetFormsByUserIdInput): Promise<GetFormsByUserIdOutput> {
     const userForms = await db
@@ -124,57 +179,45 @@ export class FormsService {
   }
 
   async getFormFields(input: GetFormFieldsInput): Promise<GetFormFieldsOutput> {
-    const fields = await db
-      .select({
-        id: formFields.id,
-        formId: formFields.formId,
-        type: formFields.type,
-        title: formFields.title,
-        description: formFields.description,
-        placeholder: formFields.placeholder,
-        order: formFields.order,
-        validation: formFields.validation,
-        properties: formFields.properties,
-        createdAt: formFields.createdAt,
-        updatedAt: formFields.updatedAt,
-      })
-      .from(formFields)
-      .where(eq(formFields.formId, input.formId))
-      .orderBy(asc(formFields.order), asc(formFields.createdAt));
+    return { fields: await getFieldsWithOptions(input.formId) };
+  }
 
-    if (!fields.length) {
-      return { fields: [] };
+  async getPublishedFormBySlug(
+    input: GetPublishedFormBySlugInput,
+  ): Promise<GetPublishedFormBySlugOutput> {
+    const [form] = await db
+      .select({
+        id: forms.id,
+        title: forms.title,
+        description: forms.description,
+        slug: forms.slug,
+        accessMode: forms.accessMode,
+        allowAnonymousResponses: forms.allowAnonymousResponses,
+        collectEmail: forms.collectEmail,
+        showProgressBar: forms.showProgressBar,
+        shuffleFields: forms.shuffleFields,
+        redirectUrl: forms.redirectUrl,
+        thankYouMessage: forms.thankYouMessage,
+      })
+      .from(forms)
+      .where(and(eq(forms.slug, input.slug), eq(forms.status, "published")));
+
+    if (!form) {
+      return { form: null, unavailableReason: "not_found" };
     }
 
-    const options = await db
-      .select({
-        id: formFieldOptions.id,
-        fieldId: formFieldOptions.fieldId,
-        label: formFieldOptions.label,
-        value: formFieldOptions.value,
-        order: formFieldOptions.order,
-      })
-      .from(formFieldOptions)
-      .where(inArray(formFieldOptions.fieldId, fields.map((field) => field.id)))
-      .orderBy(asc(formFieldOptions.order), asc(formFieldOptions.createdAt));
+    const requiresAuth =
+      form.accessMode === "authenticated" || !form.allowAnonymousResponses;
 
-    const optionsByFieldId = new Map<string, Omit<(typeof options)[number], "fieldId">[]>();
-
-    for (const option of options) {
-      const { fieldId, ...optionValues } = option;
-      const fieldOptions = optionsByFieldId.get(fieldId) ?? [];
-
-      fieldOptions.push(optionValues);
-      optionsByFieldId.set(fieldId, fieldOptions);
+    if (requiresAuth && !input.viewerUserId) {
+      return { form: null, unavailableReason: "auth_required" };
     }
 
     return {
-      fields: fields.map((field) => ({
-        ...field,
-        validation: field.validation as Record<string, unknown> | null,
-        properties: field.properties as Record<string, unknown> | null,
-        options: optionsByFieldId.get(field.id) ?? [],
-      })),
+      form: {
+        ...form,
+        fields: await getFieldsWithOptions(form.id),
+      },
     };
   }
 
