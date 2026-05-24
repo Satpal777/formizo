@@ -29,14 +29,14 @@ const apiRateLimit = createRateLimit({
 
 app.set("trust proxy", env.TRUST_PROXY);
 
-if (env.NODE_ENV !== "prod") {
-  app.use(
-    cors({
-      origin: "*",
-      credentials: true,
-    }),
-  );
-}
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  }),
+);
+// if (env.NODE_ENV !== "prod") {
+// }
 
 app.use(express.json());
 

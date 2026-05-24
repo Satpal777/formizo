@@ -8,6 +8,7 @@ import { EditorArea } from "./vscode-shell/editor-area";
 import { ExplorerPanel } from "./vscode-shell/explorer-panel";
 import { StatusBar } from "./vscode-shell/status-bar";
 import { TitleBar } from "./vscode-shell/title-bar";
+import { AuthModal } from "~/features/auth/components/auth-modal";
 
 export type FormFile = {
   id: string;
@@ -56,6 +57,7 @@ export function AppShell() {
   const [activeDocument, setActiveDocument] = useState<ActiveDocument>("welcome.md");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -72,7 +74,7 @@ export function AppShell() {
 
   function handleCreateForm(name: string) {
     if (!isAuthenticated) {
-      setIsCommandPaletteOpen(true);
+      setIsAuthModalOpen(true);
       return;
     }
 
@@ -130,7 +132,7 @@ export function AppShell() {
 
   function handleCreateFormFromCommand() {
     if (!isAuthenticated) {
-      setIsCommandPaletteOpen(true);
+      setIsAuthModalOpen(true);
       return;
     }
 
@@ -153,7 +155,7 @@ export function AppShell() {
         isAuthenticated={isAuthenticated}
         onCreateForm={handleCreateForm}
         onSelectDocument={setActiveDocument}
-        onRequestAuth={() => setIsCommandPaletteOpen(true)}
+        onRequestAuth={() => setIsAuthModalOpen(true)}
       />
       <EditorArea
         activeDocument={activeDocument}
@@ -187,10 +189,18 @@ export function AppShell() {
           setIsCommandPaletteOpen(false);
         }}
         onAuthenticate={() => {
-          setIsAuthenticated(true);
           setIsCommandPaletteOpen(false);
+          setIsAuthModalOpen(true);
         }}
         onClose={() => setIsCommandPaletteOpen(false)}
+      />
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={() => {
+          setIsAuthenticated(true);
+          setIsAuthModalOpen(false);
+        }}
       />
     </main>
   );

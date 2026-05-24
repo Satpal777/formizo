@@ -36,8 +36,7 @@ export const authRouter = router({
     .output(createUserWithEmailAndPasswordOutput)
     .mutation(async ({ input }) => {
       const { email, name, password } = input;
-      const result = await userService.createUserWithEmailAndPassword({ email, name, password });
-      return result;
+      return userService.createUserWithEmailAndPassword({ email, name, password });
     }),
 
   verifyEmail: publicProcedure
