@@ -3,6 +3,24 @@ import { z } from "zod";
 const formStatus = z.enum(["draft", "published", "archived"]);
 const formAccessMode = z.enum(["public", "authenticated"]);
 const formResultVisibility = z.enum(["hidden", "after_submit", "creator_only"]);
+const formFieldType = z.enum([
+  "short_text",
+  "long_text",
+  "email",
+  "phone",
+  "number",
+  "url",
+  "date",
+  "time",
+  "multiple_choice",
+  "checkboxes",
+  "dropdown",
+  "rating",
+  "opinion_scale",
+  "yes_no",
+  "file_upload",
+  "statement",
+]);
 const requiredString = z.string().trim().min(1);
 const optionalString = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
@@ -85,7 +103,35 @@ export const updateFormOutput = z.object({
   id: requiredString.describe("The id of the updated form"),
 });
 
+const formFieldOptionInput = z.object({
+  label: requiredString.max(255).describe("The option label shown to respondents"),
+  value: requiredString.max(255).describe("The stored option value"),
+  order: z.number().int().default(1000).describe("The option display order"),
+});
+
+export const addFormFieldInput = z.object({
+  formId: requiredString.uuid().describe("The id of the form to add the input field to"),
+  type: formFieldType.describe("The type of field to add"),
+  title: requiredString.max(500).describe("The field title"),
+  description: optionalString.describe("The field description"),
+  placeholder: optionalString.describe("The field placeholder"),
+  order: z.number().int().default(1000).describe("The field display order"),
+  validation: z.record(requiredString, z.any()).optional().describe("Field validation settings"),
+  properties: z.record(requiredString, z.any()).optional().describe("Field type-specific settings"),
+  options: z
+    .array(formFieldOptionInput)
+    .optional()
+    .describe("Selectable options for choice fields"),
+});
+
+export const addFormFieldOutput = z.object({
+  id: requiredString.describe("The id of the created field"),
+  optionIds: z.array(requiredString).describe("The ids of created field options").default([]),
+});
+
 export type CreateFormInput = z.infer<typeof createFormInput>;
 export type CreateFormOutput = z.infer<typeof createFormOutput>;
 export type UpdateFormInput = z.infer<typeof updateFormInput>;
 export type UpdateFormOutput = z.infer<typeof updateFormOutput>;
+export type AddFormFieldInput = z.infer<typeof addFormFieldInput>;
+export type AddFormFieldOutput = z.infer<typeof addFormFieldOutput>;

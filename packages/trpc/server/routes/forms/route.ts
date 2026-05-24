@@ -1,4 +1,6 @@
 import {
+  addFormFieldInput,
+  addFormFieldOutput,
   createFormProcedureInput,
   createFormOutput,
   updateFormInput,
@@ -47,5 +49,22 @@ export const formsRouter = router({
     .output(updateFormOutput)
     .mutation(async ({ input }) => {
       return formsService.updateForm(input);
+    }),
+
+  addFormField: protectedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/addFormField"),
+        tags: TAGS,
+        protect: true,
+        summary: "Add a field to a form",
+        description: "Add a field and optional choices to an existing form.",
+      },
+    })
+    .input(addFormFieldInput)
+    .output(addFormFieldOutput)
+    .mutation(async ({ input }) => {
+      return formsService.addFormField(input);
     }),
 });

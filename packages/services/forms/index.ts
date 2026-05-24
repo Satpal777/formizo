@@ -1,7 +1,20 @@
 import crypto from "node:crypto";
-import type { CreateFormInput, CreateFormOutput, UpdateFormInput, UpdateFormOutput } from "./model";
+import type {
+  AddFormFieldInput,
+  AddFormFieldOutput,
+  CreateFormInput,
+  CreateFormOutput,
+  UpdateFormInput,
+  UpdateFormOutput,
+} from "./model";
 import { db, eq } from "@repo/database";
-import { forms, type NewForm } from "@repo/database/models/form";
+import {
+  formFieldOptions,
+  formFields,
+  forms,
+  type NewForm,
+  type NewFormField,
+} from "@repo/database/models/form";
 import { generatePasswordHash } from "../utils/utils";
 
 function createSlug(title: string) {
@@ -103,5 +116,33 @@ export class FormsService {
     }
 
     return { id: updatedForm.id };
+  }
+
+  async addFormField(input: AddFormFieldInput): Promise<AddFormFieldOutput> {
+    const { options, ...fieldValues } = input;
+    const newField: NewFormField = fieldValues;
+
+    const [createdField] = await db
+      .insert(formFields)
+      .values(newField)
+      .returning({ id: formFields.id });
+
+    if (!createdField) {
+      throw new Error("Failed to add form field");
+    }
+
+    if (!options?.length) {
+      return { id: createdField.id, optionIds: [] };
+    }
+
+    const createdOptions = await db
+      .insert(formFieldOptions)
+      .values(options.map((option) => ({ ...option, fieldId: createdField.id })))
+      .returning({ id: formFieldOptions.id });
+
+    return {
+      id: createdField.id,
+      optionIds: createdOptions.map((option) => option.id),
+    };
   }
 }
