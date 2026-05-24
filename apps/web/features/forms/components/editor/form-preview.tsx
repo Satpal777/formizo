@@ -1,5 +1,5 @@
 import { CheckCircle2, ClipboardList, Copy, ExternalLink, GripVertical, Eye, ListChecks, RefreshCw } from "lucide-react";
-import { useState, type DragEvent } from "react";
+import { useState, useEffect, type DragEvent } from "react";
 import { toast } from "sonner";
 
 import type { FormField, FormFile } from "../../types";
@@ -19,6 +19,8 @@ function getPublicFormUrl(form: FormFile) {
 
 export function FormPreview({
   form,
+  activeFieldId,
+  onSelectField,
   isLoadingSubmissions,
   onOpenResponses,
   onRefreshSubmissions,
@@ -26,6 +28,8 @@ export function FormPreview({
   submissions,
 }: {
   form: FormFile;
+  activeFieldId: string | null;
+  onSelectField?: (fieldId: string) => void;
   isLoadingSubmissions: boolean;
   onOpenResponses: () => void;
   onRefreshSubmissions: () => void;
@@ -34,6 +38,16 @@ export function FormPreview({
 }) {
   const publicUrl = getPublicFormUrl(form);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  // Smooth scroll active field into view
+  useEffect(() => {
+    if (activeFieldId) {
+      const element = document.getElementById(`preview-field-${activeFieldId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+  }, [activeFieldId]);
 
   async function copyPublicUrl() {
     if (!publicUrl) {
@@ -105,6 +119,7 @@ export function FormPreview({
           ) : (
             form.fields.map((field, index) => (
               <PreviewField
+                active={field.id === activeFieldId}
                 dragged={draggedIndex === index}
                 field={field}
                 index={index}
@@ -118,6 +133,7 @@ export function FormPreview({
                   }
                   setDraggedIndex(null);
                 }}
+                onClick={() => onSelectField?.(field.id)}
               />
             ))
           )}
@@ -164,6 +180,7 @@ export function FormPreview({
 }
 
 function PreviewField({
+  active,
   dragged,
   field,
   index,
@@ -171,7 +188,9 @@ function PreviewField({
   onDragOver,
   onDragStart,
   onDrop,
+  onClick,
 }: {
+  active: boolean;
   dragged: boolean;
   field: FormField;
   index: number;
@@ -179,11 +198,16 @@ function PreviewField({
   onDragOver: (event: DragEvent) => void;
   onDragStart: () => void;
   onDrop: () => void;
+  onClick?: () => void;
 }) {
   if (field.type === "statement") {
     return (
       <div
-        className={`rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4 ${dragged ? "opacity-50" : ""}`}
+        id={`preview-field-${field.id}`}
+        onClick={onClick}
+        className={`rounded-[6px] border bg-[#202020] p-4 cursor-pointer transition-all duration-200 ${
+          active ? "border-[#0078d4] ring-1 ring-[#0078d4]" : "border-[#2b2b2b] hover:border-[#3c3c3c]"
+        } ${dragged ? "opacity-50" : ""}`}
         draggable
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
@@ -200,8 +224,12 @@ function PreviewField({
   }
 
   return (
-    <label
-      className={`block rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4 ${dragged ? "opacity-50" : ""}`}
+    <div
+      id={`preview-field-${field.id}`}
+      onClick={onClick}
+      className={`block rounded-[6px] border bg-[#202020] p-4 cursor-pointer transition-all duration-200 ${
+        active ? "border-[#0078d4] ring-1 ring-[#0078d4]" : "border-[#2b2b2b] hover:border-[#3c3c3c]"
+      } ${dragged ? "opacity-50" : ""}`}
       draggable
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
@@ -223,11 +251,11 @@ function PreviewField({
         </div>
       ) : (
         <input
-          className="h-9 w-full rounded-[4px] border border-[#3c3c3c] bg-[#1e1e1e] px-3 text-[13px] text-white outline-none"
+          className="h-9 w-full rounded-[4px] border border-[#3c3c3c] bg-[#1e1e1e] px-3 text-[13px] text-white outline-none pointer-events-none"
           placeholder={field.type.replace("_", " ")}
           readOnly
         />
       )}
-    </label>
+    </div>
   );
 }

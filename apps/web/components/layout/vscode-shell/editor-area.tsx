@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   ClipboardList,
   Columns2,
@@ -6,6 +7,7 @@ import {
   MoreHorizontal,
   Save,
   Send,
+  Settings,
   X,
 } from "lucide-react";
 
@@ -13,6 +15,7 @@ import { VsCodeLogo } from "./vscode-logo";
 import { GuideDocument, WelcomeDocument } from "~/features/forms/components/documents/public-documents";
 import { ResponseDocument } from "~/features/forms/components/documents/response-document";
 import { FormEditor } from "~/features/forms/components/editor/form-editor";
+import { FormSettingsView } from "~/features/forms/components/editor/form-settings-view";
 import { isPublicDocument } from "~/features/forms/lib/documents";
 import { formatLastUpdated } from "~/features/forms/lib/formatters";
 import type { ActiveDocument, FormFile } from "~/features/forms/types";
@@ -49,6 +52,12 @@ export function EditorArea({
     ? `${activeResponseForm.name.replace(/\.form$/, "")}.responses`
     : activeForm?.name ?? activeDocument;
 
+  const [editorMode, setEditorMode] = useState<"edit" | "settings">("edit");
+
+  useEffect(() => {
+    setEditorMode("edit");
+  }, [activeDocument]);
+
   return (
     <section className="h-full w-full min-w-0 overflow-hidden bg-[#1e1e1e]">
       <EditorTab
@@ -56,23 +65,31 @@ export function EditorArea({
         activeResponseForm={activeResponseForm}
         isPublicDocument={isDocumentPublic}
         title={title}
+        editorMode={editorMode}
+        setEditorMode={setEditorMode}
       />
-      <EditorToolbar
-        activeForm={activeForm}
-        onPublishForm={onPublishForm}
-        onSaveDraft={onSaveDraft}
-      />
-
-      {activeForm ? (
-        <FormEditor
-          form={activeForm}
+      {editorMode !== "settings" && (
+        <EditorToolbar
+          activeForm={activeForm}
           onPublishForm={onPublishForm}
           onSaveDraft={onSaveDraft}
-          onSelectDocument={onSelectDocument}
-          onCommitRenameForm={onCommitRenameForm}
-          onRenameForm={onRenameForm}
-          onUpdateForm={onUpdateForm}
         />
+      )}
+
+      {activeForm ? (
+        editorMode === "settings" ? (
+          <FormSettingsView form={activeForm} onUpdateForm={onUpdateForm} />
+        ) : (
+          <FormEditor
+            form={activeForm}
+            onPublishForm={onPublishForm}
+            onSaveDraft={onSaveDraft}
+            onSelectDocument={onSelectDocument}
+            onCommitRenameForm={onCommitRenameForm}
+            onRenameForm={onRenameForm}
+            onUpdateForm={onUpdateForm}
+          />
+        )
       ) : activeResponseForm ? (
         <ResponseDocument form={activeResponseForm} />
       ) : activeDocument === "guide.md" ? (
@@ -93,15 +110,28 @@ function EditorTab({
   activeResponseForm,
   isPublicDocument,
   title,
+  editorMode,
+  setEditorMode,
 }: {
   activeForm: FormFile | null;
   activeResponseForm: FormFile | null;
   isPublicDocument: boolean;
   title: string;
+  editorMode: "edit" | "settings";
+  setEditorMode: (mode: "edit" | "settings") => void;
 }) {
   return (
     <div className="flex h-9 items-end border-b border-[#2b2b2b] bg-[#181818]">
-      <div className="flex h-9 min-w-[120px] max-w-[260px] items-center gap-1.5 border-r border-[#2b2b2b] border-t border-t-[#0078d4] bg-[#1e1e1e] px-2.5 text-[12px] font-semibold text-white">
+      {/* File/Editor Tab */}
+      <button
+        onClick={() => setEditorMode("edit")}
+        className={`flex h-9 min-w-[120px] max-w-[260px] items-center gap-1.5 border-r border-[#2b2b2b] px-3 text-[12px] font-semibold transition ${
+          editorMode === "edit"
+            ? "border-t-2 border-t-[#0078d4] bg-[#1e1e1e] text-white"
+            : "bg-[#181818] text-[#858585] hover:bg-[#202020] hover:text-[#cccccc]"
+        }`}
+        type="button"
+      >
         {activeResponseForm ? (
           <ClipboardList className="size-4 text-[#89d185]" />
         ) : isPublicDocument ? (
@@ -111,10 +141,25 @@ function EditorTab({
         ) : (
           <VsCodeLogo className="size-4" />
         )}
-        <span className={activeForm ? "min-w-0 flex-1 truncate" : "italic"}>{title}</span>
+        <span className={activeForm ? "min-w-0 flex-1 truncate text-left" : "italic"}>{title}</span>
         {activeForm?.dirty ? <span className="size-2 rounded-full bg-white" /> : null}
-        <X className="size-3.5 shrink-0" />
-      </div>
+      </button>
+
+      {/* Settings Tab (only if editing a form) */}
+      {activeForm && (
+        <button
+          onClick={() => setEditorMode("settings")}
+          className={`flex h-9 min-w-[120px] max-w-[260px] items-center gap-1.5 border-r border-[#2b2b2b] px-3.5 text-[12px] font-semibold transition ${
+            editorMode === "settings"
+              ? "border-t-2 border-t-[#0078d4] bg-[#1e1e1e] text-white"
+              : "bg-[#181818] text-[#858585] hover:bg-[#202020] hover:text-[#cccccc]"
+          }`}
+          type="button"
+        >
+          <Settings className="size-4 text-[#0078d4]" />
+          <span>Form Settings</span>
+        </button>
+      )}
     </div>
   );
 }

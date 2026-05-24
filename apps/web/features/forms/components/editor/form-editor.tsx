@@ -16,6 +16,8 @@ import {
   formatFieldBlock,
   parseFieldsFromContent,
   slashHelpComment,
+  fieldBlockPattern,
+  getFieldBlockValues,
 } from "../../lib/field-blocks";
 import type { ActiveDocument, FormField, FormFile } from "../../types";
 import { useGetFormSubmissions } from "~/hooks/api/use-forms";
@@ -47,6 +49,54 @@ export function FormEditor({
   const [editorContent, setEditorContent] = useState(form.content);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
   const [isSettingsCollapsed, setIsSettingsCollapsed] = useState(false);
+  const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (form.fields.length > 0) {
+      const isValid = form.fields.some((f) => f.id === activeFieldId);
+      if (!isValid) {
+        const lastField = form.fields[form.fields.length - 1];
+        if (lastField) {
+          setActiveFieldId(lastField.id);
+        }
+      }
+    } else {
+      setActiveFieldId(null);
+    }
+  }, [form.id, form.fields, activeFieldId]);
+
+  function handleSelectionChange(event: React.SyntheticEvent<HTMLTextAreaElement>) {
+    const textarea = event.currentTarget;
+    const cursor = textarea.selectionStart;
+
+    const matches = Array.from(editorContent.matchAll(fieldBlockPattern));
+    for (const match of matches) {
+      const start = match.index ?? 0;
+      const end = start + match[0].length;
+      if (cursor >= start && cursor <= end) {
+        const values = getFieldBlockValues(match[2] ?? "");
+        if (values.id && values.id !== activeFieldId) {
+          setActiveFieldId(values.id);
+        }
+        break;
+      }
+    }
+  }
+
+  function handleSelectField(fieldId: string) {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const fieldIndex = editorContent.indexOf(`id: ${fieldId}`);
+    if (fieldIndex !== -1) {
+      const startOfBlock = editorContent.lastIndexOf("<!-- start field", fieldIndex);
+      const targetPos = startOfBlock !== -1 ? startOfBlock : fieldIndex;
+
+      editor.focus();
+      editor.setSelectionRange(targetPos, targetPos);
+      setActiveFieldId(fieldId);
+    }
+  }
 
   const contentLines = useMemo(() => editorContent.split("\n"), [editorContent]);
 
@@ -289,6 +339,7 @@ export function FormEditor({
             onChange={handleContentChange}
             onBlur={handleEditorBlur}
             onKeyDown={handleEditorKeyDown}
+            onSelect={handleSelectionChange}
             spellCheck={false}
             value={editorContent}
           />
@@ -353,6 +404,8 @@ export function FormEditor({
           <Panel className="min-h-0" defaultSize="68%" id="preview" minSize="260px">
             <FormPreview
               form={form}
+              activeFieldId={activeFieldId}
+              onSelectField={handleSelectField}
               isLoadingSubmissions={submissionsQuery.isLoading}
               onOpenResponses={() => onSelectDocument(getResponseDocumentId(form.id))}
               onRefreshSubmissions={() => submissionsQuery.refetch()}
@@ -384,7 +437,7 @@ export function FormEditor({
             onResize={(size) => setIsSettingsCollapsed(size.asPercentage <= 1)}
             panelRef={settingsPanelRef}
           >
-            <FieldSettings form={form} onUpdateForm={onUpdateForm} />
+            <FieldSettings form={form} activeFieldId={activeFieldId} onUpdateForm={onUpdateForm} />
           </Panel>
         </Group>
       </Panel>
