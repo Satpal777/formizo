@@ -4,10 +4,12 @@ import type {
   AddFormFieldOutput,
   CreateFormInput,
   CreateFormOutput,
+  GetFormsByUserIdInput,
+  GetFormsByUserIdOutput,
   UpdateFormInput,
   UpdateFormOutput,
 } from "./model";
-import { db, eq } from "@repo/database";
+import { db, desc, eq } from "@repo/database";
 import {
   formFieldOptions,
   formFields,
@@ -75,6 +77,27 @@ function hasFormValues(values: FormWriteValues) {
 }
 
 export class FormsService {
+  async getFormsByUserId(input: GetFormsByUserIdInput): Promise<GetFormsByUserIdOutput> {
+    const userForms = await db
+      .select({
+        id: forms.id,
+        title: forms.title,
+        description: forms.description,
+        slug: forms.slug,
+        status: forms.status,
+        accessMode: forms.accessMode,
+        resultVisibility: forms.resultVisibility,
+        createdAt: forms.createdAt,
+        updatedAt: forms.updatedAt,
+        publishedAt: forms.publishedAt,
+      })
+      .from(forms)
+      .where(eq(forms.creatorId, input.userId))
+      .orderBy(desc(forms.updatedAt));
+
+    return { forms: userForms };
+  }
+
   async createForm(input: CreateFormInput): Promise<CreateFormOutput> {
     const newForm: NewForm = {
       ...buildFormValues(input),

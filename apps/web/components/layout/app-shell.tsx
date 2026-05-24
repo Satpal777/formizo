@@ -11,12 +11,17 @@ import { StatusBar } from "./vscode-shell/status-bar";
 import { TitleBar } from "./vscode-shell/title-bar";
 import { AuthModal } from "~/features/auth/components/auth-modal";
 import { useMe } from "~/hooks/api/use-auth";
-import { useAddFormField, useCreateForm, useUpdateForm } from "~/hooks/api/use-forms";
+import {
+  useAddFormField,
+  useCreateForm,
+  useGetFormsByUserId,
+  useUpdateForm,
+} from "~/hooks/api/use-forms";
 
 export type FormFile = {
   id: string;
   name: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "archived";
   dirty: boolean;
   content: string;
   fields: FormField[];
@@ -59,6 +64,8 @@ export type ActiveDocument = PublicDocumentId | string;
 
 export function AppShell() {
   const meQuery = useMe();
+  const isMeAuthenticated = meQuery.data?.authenticated === true;
+  const formsQuery = useGetFormsByUserId(isMeAuthenticated);
   const createFormMutation = useCreateForm();
   const updateFormMutation = useUpdateForm();
   const addFormFieldMutation = useAddFormField();
@@ -82,7 +89,7 @@ export function AppShell() {
   }, []);
 
   useEffect(() => {
-    if (meQuery.data?.authenticated) {
+    if (isMeAuthenticated) {
       setIsAuthenticated(true);
       return;
     }
@@ -90,7 +97,37 @@ export function AppShell() {
     if (meQuery.isError) {
       setIsAuthenticated(false);
     }
-  }, [meQuery.data?.authenticated, meQuery.isError]);
+  }, [isMeAuthenticated, meQuery.isError]);
+
+  useEffect(() => {
+    if (!formsQuery.data?.forms) {
+      return;
+    }
+
+    setForms((currentForms) => {
+      const currentFormsById = new Map(currentForms.map((form) => [form.id, form]));
+
+      return formsQuery.data.forms.map((form) => {
+        const currentForm = currentFormsById.get(form.id);
+        const fileName = `${form.title}.form`;
+
+        if (currentForm?.dirty) {
+          return currentForm;
+        }
+
+        return {
+          id: form.id,
+          name: fileName,
+          status: form.status,
+          dirty: false,
+          accessMode: form.accessMode,
+          resultVisibility: form.resultVisibility,
+          content: currentForm?.content ?? `# ${form.title}\n\n<!-- Type "/" for fields -->`,
+          fields: currentForm?.fields ?? [],
+        };
+      });
+    });
+  }, [formsQuery.data?.forms]);
 
   async function handleCreateForm(name: string) {
     if (!isAuthenticated) {

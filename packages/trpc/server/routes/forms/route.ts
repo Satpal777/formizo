@@ -3,6 +3,8 @@ import {
   addFormFieldOutput,
   createFormProcedureInput,
   createFormOutput,
+  getFormsByUserIdInput,
+  getFormsByUserIdOutput,
   updateFormInput,
   updateFormOutput,
 } from "./model";
@@ -14,6 +16,25 @@ const TAGS = ["Forms"];
 const getPath = generatePath("/forms");
 
 export const formsRouter = router({
+  getFormsByUserId: protectedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getFormsByUserId"),
+        tags: TAGS,
+        protect: true,
+        summary: "Get forms for the authenticated user",
+        description: "Return the forms owned by the authenticated user.",
+      },
+    })
+    .input(getFormsByUserIdInput)
+    .output(getFormsByUserIdOutput)
+    .query(async ({ ctx }) => {
+      return formsService.getFormsByUserId({
+        userId: ctx.user.id,
+      });
+    }),
+
   createForm: protectedProcedure
     .meta({
       openapi: {

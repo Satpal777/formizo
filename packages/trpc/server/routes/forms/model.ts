@@ -102,6 +102,25 @@ export const updateFormOutput = z.object({
   id: requiredString.describe("The id of the updated form"),
 });
 
+export const getFormsByUserIdInput = z.void();
+
+export const formListItem = z.object({
+  id: requiredString.describe("The form id"),
+  title: requiredString.describe("The form title"),
+  description: z.string().nullable().describe("The form description"),
+  slug: requiredString.describe("The form slug"),
+  status: formStatus.describe("The form status"),
+  accessMode: formAccessMode.describe("The access mode of the form"),
+  resultVisibility: formResultVisibility.describe("The result visibility of the form"),
+  createdAt: z.date().describe("The form creation date"),
+  updatedAt: z.date().describe("The form update date"),
+  publishedAt: z.date().nullable().describe("The form publish date"),
+});
+
+export const getFormsByUserIdOutput = z.object({
+  forms: z.array(formListItem),
+});
+
 const formFieldOptionInput = z.object({
   label: requiredString.max(255).describe("The option label shown to respondents"),
   value: requiredString.max(255).describe("The stored option value"),
