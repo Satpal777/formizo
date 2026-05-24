@@ -3,7 +3,9 @@ import {
   CheckCircle2,
   ChevronRight,
   Columns2,
+  Copy,
   Eye,
+  ExternalLink,
   FileText,
   GitBranch,
   ListChecks,
@@ -13,6 +15,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import type { ActiveDocument, FormField, FormFieldType, FormFile, PublicDocumentId } from "../app-shell";
 import { VsCodeLogo } from "./vscode-logo";
@@ -147,6 +150,16 @@ function formatLastUpdated(value?: Date | string) {
     hour: "2-digit",
     minute: "2-digit",
   })}`;
+}
+
+function getPublicFormUrl(form: FormFile) {
+  if (form.status !== "published" || !form.slug) {
+    return null;
+  }
+
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+
+  return `${origin}/forms/${form.slug}`;
 }
 
 export function EditorArea({
@@ -765,6 +778,25 @@ function FieldSettings({
 }
 
 function FormPreview({ form }: { form: FormFile }) {
+  const publicUrl = getPublicFormUrl(form);
+
+  async function copyPublicUrl() {
+    if (!publicUrl) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(publicUrl);
+    toast.success("Form link copied");
+  }
+
+  function openPublicUrl() {
+    if (!publicUrl) {
+      return;
+    }
+
+    window.open(publicUrl, "_blank", "noopener,noreferrer");
+  }
+
   return (
     <div className="min-w-0 overflow-auto bg-[#181818]">
       <div className="flex h-8 items-center justify-between border-b border-[#2b2b2b] px-4 text-[12px] text-[#9d9d9d]">
@@ -774,6 +806,34 @@ function FormPreview({ form }: { form: FormFile }) {
         </span>
         <span className="uppercase text-[#89d185]">{form.status}</span>
       </div>
+      {publicUrl ? (
+        <div className="border-b border-[#2b2b2b] bg-[#1e1e1e] px-4 py-2">
+          <div className="flex min-h-8 items-center gap-2 rounded-[4px] border border-[#2f3b2f] bg-[#1b241d] px-2.5">
+            <span className="shrink-0 text-[11px] uppercase text-[#89d185]">Published</span>
+            <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-[#d4d4d4]">
+              {publicUrl}
+            </span>
+            <button
+              aria-label="Copy published form link"
+              className="grid size-6 shrink-0 place-items-center rounded-[3px] text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
+              onClick={copyPublicUrl}
+              title="Copy link"
+              type="button"
+            >
+              <Copy className="size-3.5" />
+            </button>
+            <button
+              aria-label="Open published form"
+              className="grid size-6 shrink-0 place-items-center rounded-[3px] text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
+              onClick={openPublicUrl}
+              title="Open form"
+              type="button"
+            >
+              <ExternalLink className="size-3.5" />
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto max-w-[560px] px-8 py-8">
         <div className="mb-6 text-[12px] uppercase tracking-wide text-[#858585]">
           {form.accessMode} / results {form.resultVisibility.replace("_", " ")}

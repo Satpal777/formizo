@@ -101,6 +101,7 @@ export const publishFormInput = z.object({
 
 export const createFormOutput = z.object({
   id: requiredString.describe("The id of the created form"),
+  slug: requiredString.describe("The slug of the created form"),
   updatedAt: z.date().describe("The form update date"),
 });
 
@@ -111,6 +112,7 @@ export const updateFormOutput = z.object({
 
 export const publishFormOutput = z.object({
   id: requiredString.describe("The id of the published form"),
+  slug: requiredString.describe("The slug of the published form"),
   status: z.literal("published").describe("The published form status"),
   updatedAt: z.date().describe("The form update date"),
   publishedAt: z.date().describe("The form publish date"),

@@ -24,6 +24,7 @@ import {
 
 export type FormFile = {
   id: string;
+  slug: string;
   name: string;
   status: "draft" | "published" | "archived";
   dirty: boolean;
@@ -175,6 +176,7 @@ export function AppShell() {
 
         return {
           id: form.id,
+          slug: form.slug,
           name: fileName,
           status: form.status,
           dirty: false,
@@ -252,6 +254,7 @@ export function AppShell() {
     }
     const form: FormFile = {
       id: createdForm.id,
+      slug: createdForm.slug,
       name: fileName,
       status: "draft",
       dirty: false,
@@ -578,6 +581,7 @@ export function AppShell() {
               fields: syncedForm.fields,
               savedFields: syncedForm.fields.map((field) => ({ ...field })),
               status: publishedForm.status,
+              slug: publishedForm.slug,
               dirty: false,
               lastUpdatedAt: publishedForm.updatedAt,
             }

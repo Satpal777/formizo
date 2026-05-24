@@ -179,23 +179,24 @@ export class FormsService {
   }
 
   async createForm(input: CreateFormInput): Promise<CreateFormOutput> {
+    const slug = createSlug(input.title);
     const newForm: NewForm = {
       ...buildFormValues(input),
       creatorId: input.creatorId,
-      slug: createSlug(input.title),
+      slug,
       title: input.title,
     };
 
     const [createdForm] = await db
       .insert(forms)
       .values(newForm)
-      .returning({ id: forms.id, updatedAt: forms.updatedAt });
+      .returning({ id: forms.id, slug: forms.slug, updatedAt: forms.updatedAt });
 
     if (!createdForm) {
       throw new Error("Failed to create form");
     }
 
-    return { id: createdForm.id, updatedAt: createdForm.updatedAt };
+    return { id: createdForm.id, slug: createdForm.slug, updatedAt: createdForm.updatedAt };
   }
 
   async updateForm(input: UpdateFormInput): Promise<UpdateFormOutput> {
@@ -241,6 +242,7 @@ export class FormsService {
       .where(eq(forms.id, input.id))
       .returning({
         id: forms.id,
+        slug: forms.slug,
         status: forms.status,
         updatedAt: forms.updatedAt,
         publishedAt: forms.publishedAt,
@@ -252,6 +254,7 @@ export class FormsService {
 
     return {
       id: publishedForm.id,
+      slug: publishedForm.slug,
       status: "published",
       updatedAt: publishedForm.updatedAt,
       publishedAt: publishedForm.publishedAt,
