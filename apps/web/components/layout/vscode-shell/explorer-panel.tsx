@@ -13,7 +13,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { getResponseDocumentId, type ActiveDocument, type FormFile } from "../app-shell";
+import { getResponseDocumentId } from "~/features/forms/lib/documents";
+import type { ActiveDocument, FormFile } from "~/features/forms/types";
 
 type ExplorerPanelProps = {
   activeDocument: ActiveDocument;

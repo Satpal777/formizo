@@ -10,6 +10,12 @@ import { ExplorerPanel } from "./vscode-shell/explorer-panel";
 import { StatusBar } from "./vscode-shell/status-bar";
 import { TitleBar } from "./vscode-shell/title-bar";
 import { AuthModal } from "~/features/auth/components/auth-modal";
+import { getResponseFormId } from "~/features/forms/lib/documents";
+import {
+  buildFormContent,
+  fieldBlockPattern,
+} from "~/features/forms/lib/field-blocks";
+import type { ActiveDocument, FormField, FormFile } from "~/features/forms/types";
 import { useMe } from "~/hooks/api/use-auth";
 import {
   useAddFormFields,
@@ -21,92 +27,6 @@ import {
   useUpdateForm,
   useUpdateFormFields,
 } from "~/hooks/api/use-forms";
-
-export type FormFile = {
-  id: string;
-  slug: string;
-  name: string;
-  status: "draft" | "published" | "archived";
-  dirty: boolean;
-  content: string;
-  fields: FormField[];
-  savedFields: FormField[];
-  lastUpdatedAt?: Date | string;
-  accessMode: "public" | "authenticated";
-  resultVisibility: "hidden" | "after_submit" | "creator_only";
-};
-
-export type FormFieldType =
-  | "short_text"
-  | "long_text"
-  | "email"
-  | "phone"
-  | "number"
-  | "url"
-  | "date"
-  | "time"
-  | "multiple_choice"
-  | "checkboxes"
-  | "dropdown"
-  | "rating"
-  | "opinion_scale"
-  | "yes_no"
-  | "file_upload"
-  | "statement";
-
-export type FormField = {
-  id: string;
-  type: FormFieldType;
-  title: string;
-  description?: string;
-  placeholder?: string;
-  options?: string[];
-  validation?: Record<string, unknown>;
-  properties?: Record<string, unknown>;
-  saved?: boolean;
-};
-
-export type PublicDocumentId = "welcome.md" | "guide.md";
-export type ActiveDocument = PublicDocumentId | string;
-
-export function getResponseDocumentId(formId: string) {
-  return `responses:${formId}`;
-}
-
-export function getResponseFormId(documentId: ActiveDocument) {
-  return documentId.startsWith("responses:") ? documentId.slice("responses:".length) : null;
-}
-
-const fieldBlockPattern =
-  /<!--\s*start\s+field\s+([a-z_]+)\s*-->([\s\S]*?)<!--\s*end\s+field\s*-->/g;
-const choiceFieldTypes = new Set<FormFieldType>(["multiple_choice", "checkboxes", "dropdown"]);
-
-function formatFieldBlockFromField(field: FormField) {
-  const validation = field.validation ? JSON.stringify(field.validation) : "{}";
-  const properties = field.properties ? JSON.stringify(field.properties) : "{}";
-
-  let block = `<!-- start field ${field.type} -->\n`;
-  block += `id: ${field.id}\n`;
-  block += `title: ${field.title || "Untitled field"}\n`;
-  block += `description: ${field.description ?? ""}\n`;
-  block += `placeholder: ${field.placeholder ?? ""}\n`;
-  block += `required: ${field.validation?.required === true ? "true" : "false"}\n`;
-  if (choiceFieldTypes.has(field.type)) {
-    block += `options: ${field.options?.join(", ") ?? ""}\n`;
-  }
-  block += `validation: ${validation}\n`;
-  block += `properties: ${properties}\n`;
-  block += `<!-- end field -->`;
-  return block;
-}
-
-function buildFormContent(title: string, fields: FormField[]) {
-  if (!fields.length) {
-    return `# ${title}\n\n<!-- Type "/" for fields -->`;
-  }
-
-  return `# ${title}\n\n${fields.map((field) => formatFieldBlockFromField(field)).join("\n\n")}`;
-}
 
 export function AppShell() {
   const meQuery = useMe();
@@ -466,11 +386,18 @@ export function AppShell() {
       await updateFormFieldsMutation.mutateAsync({
         fields: updatedFields.map((field, index) => {
           const fieldIndex = form.fields.findIndex((currentField) => currentField.id === field.id);
-          const { formId: _formId, ...payload } = getFieldPayload(form.id, field, fieldIndex === -1 ? index : fieldIndex);
+          const payload = getFieldPayload(form.id, field, fieldIndex === -1 ? index : fieldIndex);
 
           return {
             id: field.id,
-            ...payload,
+            type: payload.type,
+            title: payload.title,
+            description: payload.description,
+            placeholder: payload.placeholder,
+            order: payload.order,
+            validation: payload.validation,
+            properties: payload.properties,
+            options: payload.options,
           };
         }),
       });

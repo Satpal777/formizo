@@ -1,23 +1,7 @@
 import { Bell, CircleAlert, CircleX, GitBranch, Save, Send, UsersRound } from "lucide-react";
 
-import type { FormFile } from "../app-shell";
-
-function formatLastUpdated(value?: Date | string) {
-  if (!value) {
-    return "not saved";
-  }
-
-  const date = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "not saved";
-  }
-
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import { formatLastUpdated } from "~/features/forms/lib/formatters";
+import type { FormFile } from "~/features/forms/types";
 
 export function StatusBar({
   activeForm,
@@ -37,7 +21,7 @@ export function StatusBar({
             {activeForm.name} / {activeForm.status}
             {activeForm.dirty ? " / unsaved" : ""}
             {" / "}
-            updated {formatLastUpdated(activeForm.lastUpdatedAt)}
+            updated {formatLastUpdated(activeForm.lastUpdatedAt, "not saved")}
           </span>
         ) : null}
         <span className="flex items-center gap-1">

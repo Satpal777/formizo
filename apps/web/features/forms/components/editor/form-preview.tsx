@@ -1,0 +1,182 @@
+import { CheckCircle2, ClipboardList, Copy, ExternalLink, Eye, ListChecks, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+
+import type { FormField, FormFile } from "../../types";
+import { useGetFormSubmissions } from "~/hooks/api/use-forms";
+
+type SubmissionItem = NonNullable<ReturnType<typeof useGetFormSubmissions>["data"]>["submissions"][number];
+
+function getPublicFormUrl(form: FormFile) {
+  if (form.status !== "published" || !form.slug) {
+    return null;
+  }
+
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+
+  return `${origin}/forms/${form.slug}`;
+}
+
+export function FormPreview({
+  form,
+  isLoadingSubmissions,
+  onOpenResponses,
+  onRefreshSubmissions,
+  submissions,
+}: {
+  form: FormFile;
+  isLoadingSubmissions: boolean;
+  onOpenResponses: () => void;
+  onRefreshSubmissions: () => void;
+  submissions: SubmissionItem[];
+}) {
+  const publicUrl = getPublicFormUrl(form);
+
+  async function copyPublicUrl() {
+    if (!publicUrl) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(publicUrl);
+    toast.success("Form link copied");
+  }
+
+  function openPublicUrl() {
+    if (!publicUrl) {
+      return;
+    }
+
+    window.open(publicUrl, "_blank", "noopener,noreferrer");
+  }
+
+  return (
+    <div className="min-w-0 overflow-auto bg-[#181818]">
+      <div className="flex h-8 items-center justify-between border-b border-[#2b2b2b] px-4 text-[12px] text-[#9d9d9d]">
+        <span className="flex items-center gap-1.5">
+          <Eye className="size-3.5" />
+          Live preview
+        </span>
+        <span className="uppercase text-[#89d185]">{form.status}</span>
+      </div>
+      {publicUrl ? (
+        <div className="border-b border-[#2b2b2b] bg-[#1e1e1e] px-4 py-2">
+          <div className="flex min-h-8 items-center gap-2 rounded-[4px] border border-[#2f3b2f] bg-[#1b241d] px-2.5">
+            <span className="shrink-0 text-[11px] uppercase text-[#89d185]">Published</span>
+            <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-[#d4d4d4]">
+              {publicUrl}
+            </span>
+            <button
+              aria-label="Copy published form link"
+              className="grid size-6 shrink-0 place-items-center rounded-[3px] text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
+              onClick={copyPublicUrl}
+              title="Copy link"
+              type="button"
+            >
+              <Copy className="size-3.5" />
+            </button>
+            <button
+              aria-label="Open published form"
+              className="grid size-6 shrink-0 place-items-center rounded-[3px] text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
+              onClick={openPublicUrl}
+              title="Open form"
+              type="button"
+            >
+              <ExternalLink className="size-3.5" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+      <div className="mx-auto max-w-[560px] px-8 py-8">
+        <div className="mb-6 text-[12px] uppercase tracking-wide text-[#858585]">
+          {form.accessMode} / results {form.resultVisibility.replace("_", " ")}
+        </div>
+        <h1 className="text-[26px] font-semibold text-white">{form.name.replace(/\.form$/, "")}</h1>
+        <p className="mt-2 text-[13px] leading-6 text-[#9d9d9d]">
+          This is the respondent-facing preview generated from the form file.
+        </p>
+        <div className="mt-7 space-y-4">
+          {form.fields.length === 0 ? (
+            <div className="rounded-[6px] border border-dashed border-[#3c3c3c] p-8 text-center text-[13px] text-[#858585]">
+              Type <span className="text-[#d4d4d4]">/</span> in the editor for fields.
+            </div>
+          ) : (
+            form.fields.map((field, index) => <PreviewField field={field} index={index} key={field.id} />)
+          )}
+        </div>
+        {form.fields.length > 0 ? (
+          <button className="mt-7 h-10 rounded-[4px] bg-[#0e639c] px-5 text-[13px] font-medium text-white" type="button">
+            Submit preview
+          </button>
+        ) : null}
+        <section className="mt-9 border-t border-[#2b2b2b] pt-6">
+          <div className="flex items-center justify-between gap-3 rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4">
+            <div>
+              <h2 className="text-[14px] font-semibold text-white">Submissions</h2>
+              <p className="mt-1 text-[12px] text-[#858585]">
+                {isLoadingSubmissions
+                  ? "Loading responses"
+                  : `${submissions.length} response${submissions.length === 1 ? "" : "s"}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                aria-label="Refresh submissions"
+                className="grid size-7 place-items-center rounded-[3px] text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
+                onClick={onRefreshSubmissions}
+                title="Refresh submissions"
+                type="button"
+              >
+                <RefreshCw className={`size-3.5 ${isLoadingSubmissions ? "animate-spin" : ""}`} />
+              </button>
+              <button
+                className="flex h-7 items-center gap-1.5 rounded-[3px] bg-[#0e639c] px-2.5 text-[12px] text-white hover:bg-[#1177bb]"
+                onClick={onOpenResponses}
+                type="button"
+              >
+                <ClipboardList className="size-3.5" />
+                Open
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function PreviewField({ field, index }: { field: FormField; index: number }) {
+  if (field.type === "statement") {
+    return (
+      <div className="rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4">
+        <div className="flex items-center gap-2 text-[14px] font-semibold text-white">
+          <CheckCircle2 className="size-4 text-[#89d185]" />
+          {field.title}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <label className="block rounded-[6px] border border-[#2b2b2b] bg-[#202020] p-4">
+      <span className="mb-3 flex items-center gap-2 text-[14px] font-medium text-white">
+        <ListChecks className="size-4 text-[#3794ff]" />
+        {index + 1}. {field.title}
+      </span>
+      {field.options ? (
+        <div className="space-y-2">
+          {field.options.map((option) => (
+            <span className="flex h-9 items-center rounded-[4px] border border-[#3c3c3c] px-3 text-[13px] text-[#cfcfcf]" key={option}>
+              {option}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <input
+          className="h-9 w-full rounded-[4px] border border-[#3c3c3c] bg-[#1e1e1e] px-3 text-[13px] text-white outline-none"
+          placeholder={field.type.replace("_", " ")}
+          readOnly
+        />
+      )}
+    </label>
+  );
+}
+
