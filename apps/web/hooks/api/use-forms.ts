@@ -71,6 +71,14 @@ export function usePublishForm() {
   });
 }
 
+export function useSubmitPublishedForm() {
+  return trpc.forms.submitPublishedForm.useMutation({
+    onError: (error) => {
+      toast.error(error.message || "Failed to submit form");
+    },
+  });
+}
+
 export function useAddFormFields() {
   return trpc.forms.addFormFields.useMutation({
     onError: (error) => {

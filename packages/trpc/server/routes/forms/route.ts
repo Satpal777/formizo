@@ -13,6 +13,8 @@ import {
   getPublishedFormBySlugOutput,
   publishFormInput,
   publishFormOutput,
+  submitPublishedFormInput,
+  submitPublishedFormOutput,
   updateFormFieldsInput,
   updateFormFieldsOutput,
   updateFormInput,
@@ -136,6 +138,28 @@ export const formsRouter = router({
     .output(publishFormOutput)
     .mutation(async ({ input }) => {
       return formsService.publishForm(input);
+    }),
+
+  submitPublishedForm: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/submitPublishedForm"),
+        tags: TAGS,
+        protect: false,
+        summary: "Submit a published form",
+        description: "Create a form response and answers for a published form.",
+      },
+    })
+    .input(submitPublishedFormInput)
+    .output(submitPublishedFormOutput)
+    .mutation(async ({ ctx, input }) => {
+      const respondentUserId = await getOptionalUserId(ctx);
+
+      return formsService.submitPublishedForm({
+        ...input,
+        respondentUserId: respondentUserId ?? undefined,
+      });
     }),
 
   addFormFields: protectedProcedure

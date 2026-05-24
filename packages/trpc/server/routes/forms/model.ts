@@ -252,3 +252,23 @@ export const getPublishedFormBySlugOutput = z.object({
     .optional()
     .describe("Why the form is unavailable"),
 });
+
+const submitFormAnswerInput = z.object({
+  fieldId: requiredString.uuid().describe("The field id being answered"),
+  value: z.any().describe("The submitted answer value"),
+});
+
+export const submitPublishedFormInput = z.object({
+  slug: requiredString.describe("The published form slug"),
+  respondentUserId: requiredString.uuid().optional().describe("The authenticated respondent id"),
+  respondentEmail: z.string().trim().email().optional().describe("The respondent email"),
+  answers: z.array(submitFormAnswerInput).describe("Submitted field answers"),
+  metadata: z.record(requiredString, z.any()).optional().describe("Submission metadata"),
+});
+
+export const submitPublishedFormOutput = z.object({
+  responseId: requiredString.describe("The created response id"),
+  submittedAt: z.date().describe("The submission date"),
+  redirectUrl: z.string().nullable().describe("The redirect URL after submit"),
+  thankYouMessage: z.string().nullable().describe("The thank you message after submit"),
+});

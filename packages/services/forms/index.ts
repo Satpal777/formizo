@@ -14,6 +14,8 @@ import type {
   GetFormsByUserIdOutput,
   PublishFormInput,
   PublishFormOutput,
+  SubmitPublishedFormInput,
+  SubmitPublishedFormOutput,
   UpdateFormFieldsInput,
   UpdateFormFieldsOutput,
   UpdateFormInput,
@@ -23,9 +25,13 @@ import { and, asc, db, desc, eq, inArray } from "@repo/database";
 import {
   formFieldOptions,
   formFields,
+  formAnswers,
+  formResponses,
   forms,
+  type NewFormAnswer,
   type NewForm,
   type NewFormField,
+  type NewFormResponse,
 } from "@repo/database/models/form";
 import { generatePasswordHash } from "../utils/utils";
 
@@ -44,6 +50,7 @@ type FormValues = Omit<CreateFormInput, "creatorId"> | Omit<UpdateFormInput, "id
 type FormWriteValues = Partial<Omit<NewForm, "creatorId" | "slug">>;
 type FormFieldValues = Omit<AddFormFieldsInput["fields"][number], "options">;
 type FormFieldWriteValues = Partial<NewFormField>;
+type FieldWithOptions = Awaited<ReturnType<typeof getFieldsWithOptions>>[number];
 
 function setIfDefined<T extends object, K extends keyof T>(
   values: T,
@@ -156,6 +163,33 @@ async function getFieldsWithOptions(formId: string) {
   }));
 }
 
+function hasAnswerValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return value !== undefined && value !== null && value !== "";
+}
+
+function validateRequiredAnswers(fields: FieldWithOptions[], answersByFieldId: Map<string, unknown>) {
+  for (const field of fields) {
+    if (field.type === "statement") {
+      continue;
+    }
+
+    const validation = field.validation;
+    const required =
+      validation !== null &&
+      typeof validation === "object" &&
+      "required" in validation &&
+      validation.required === true;
+
+    if (required && !hasAnswerValue(answersByFieldId.get(field.id))) {
+      throw new Error(`Required field missing: ${field.title}`);
+    }
+  }
+}
+
 export class FormsService {
   async getFormsByUserId(input: GetFormsByUserIdInput): Promise<GetFormsByUserIdOutput> {
     const userForms = await db
@@ -218,6 +252,112 @@ export class FormsService {
         ...form,
         fields: await getFieldsWithOptions(form.id),
       },
+    };
+  }
+
+  async submitPublishedForm(
+    input: SubmitPublishedFormInput,
+  ): Promise<SubmitPublishedFormOutput> {
+    const [form] = await db
+      .select({
+        id: forms.id,
+        status: forms.status,
+        accessMode: forms.accessMode,
+        allowAnonymousResponses: forms.allowAnonymousResponses,
+        allowMultipleResponses: forms.allowMultipleResponses,
+        collectEmail: forms.collectEmail,
+        redirectUrl: forms.redirectUrl,
+        thankYouMessage: forms.thankYouMessage,
+      })
+      .from(forms)
+      .where(and(eq(forms.slug, input.slug), eq(forms.status, "published")));
+
+    if (!form) {
+      throw new Error("Form is not available");
+    }
+
+    const requiresAuth =
+      form.accessMode === "authenticated" || !form.allowAnonymousResponses;
+
+    if (requiresAuth && !input.respondentUserId) {
+      throw new Error("Authentication is required to submit this form");
+    }
+
+    if (form.collectEmail && !input.respondentEmail) {
+      throw new Error("Email address is required");
+    }
+
+    if (!form.allowMultipleResponses) {
+      const whereClauses = [eq(formResponses.formId, form.id)];
+
+      if (input.respondentUserId) {
+        whereClauses.push(eq(formResponses.respondentUserId, input.respondentUserId));
+      } else if (input.respondentEmail) {
+        whereClauses.push(eq(formResponses.respondentEmail, input.respondentEmail));
+      }
+
+      if (whereClauses.length > 1) {
+        const [existingResponse] = await db
+          .select({ id: formResponses.id })
+          .from(formResponses)
+          .where(and(...whereClauses));
+
+        if (existingResponse) {
+          throw new Error("This form only allows one response");
+        }
+      }
+    }
+
+    const fields = await getFieldsWithOptions(form.id);
+    const fieldsById = new Map(fields.map((field) => [field.id, field]));
+    const answers = input.answers.filter((answer) => {
+      const field = fieldsById.get(answer.fieldId);
+
+      return field && field.type !== "statement" && hasAnswerValue(answer.value);
+    });
+    const answersByFieldId = new Map(answers.map((answer) => [answer.fieldId, answer.value]));
+
+    validateRequiredAnswers(fields, answersByFieldId);
+
+    const response = await db.transaction(async (tx) => {
+      const newResponse: NewFormResponse = {
+        formId: form.id,
+        respondentUserId: input.respondentUserId,
+        respondentEmail: input.respondentEmail,
+        isAnonymous: !input.respondentUserId,
+        metadata: input.metadata,
+      };
+
+      const [createdResponse] = await tx
+        .insert(formResponses)
+        .values(newResponse)
+        .returning({
+          id: formResponses.id,
+          submittedAt: formResponses.submittedAt,
+        });
+
+      if (!createdResponse) {
+        throw new Error("Failed to submit form");
+      }
+
+      const newAnswers: NewFormAnswer[] = answers.map((answer) => ({
+        responseId: createdResponse.id,
+        fieldId: answer.fieldId,
+        value: answer.value,
+      }));
+
+      if (newAnswers.length > 0) {
+        await tx.insert(formAnswers).values(newAnswers);
+      }
+
+      return createdResponse;
+    });
+
+    return {
+      responseId: response.id,
+      submittedAt: response.submittedAt,
+      redirectUrl: form.redirectUrl,
+      thankYouMessage: form.thankYouMessage,
     };
   }
 

@@ -4,7 +4,7 @@ import { use, useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, CircleAlert, Loader2, Send } from "lucide-react";
 
 import { AuthModal } from "~/features/auth/components/auth-modal";
-import { useGetPublishedFormBySlug } from "~/hooks/api/use-forms";
+import { useGetPublishedFormBySlug, useSubmitPublishedForm } from "~/hooks/api/use-forms";
 
 type PublishedForm = NonNullable<
   NonNullable<ReturnType<typeof useGetPublishedFormBySlug>["data"]>["form"]
@@ -20,8 +20,10 @@ type PublicFormPageProps = {
 export default function PublicFormPage({ params }: PublicFormPageProps) {
   const { slug } = use(params);
   const formQuery = useGetPublishedFormBySlug(slug);
+  const submitFormMutation = useSubmitPublishedForm();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [thankYouMessage, setThankYouMessage] = useState<string | null>(null);
   const form = formQuery.data?.form;
   const fields = useMemo(() => {
     const formFields = form?.fields ?? [];
@@ -94,7 +96,7 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
         <section className="w-full max-w-[560px] rounded-[8px] border border-[#2b2b2b] bg-[#1e1e1e] p-8 text-center">
           <CheckCircle2 className="mx-auto size-9 text-[#89d185]" />
           <h1 className="mt-4 text-[24px] font-semibold text-white">
-            {form.thankYouMessage || "Thanks for your response"}
+            {thankYouMessage || form.thankYouMessage || "Thanks for your response"}
           </h1>
           <p className="mt-2 text-[13px] leading-6 text-[#9d9d9d]">
             Your submission preview has been completed.
@@ -141,13 +143,41 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
         ) : (
           <form
             className="space-y-4"
-            onSubmit={(event) => {
+            onSubmit={async (event) => {
               event.preventDefault();
-              if (form.redirectUrl) {
-                window.location.assign(form.redirectUrl);
+              const formData = new FormData(event.currentTarget);
+              const respondentEmail = formData.get("respondentEmail");
+              const response = await submitFormMutation.mutateAsync({
+                slug,
+                respondentEmail: typeof respondentEmail === "string" && respondentEmail
+                  ? respondentEmail
+                  : undefined,
+                metadata: {
+                  userAgent: navigator.userAgent,
+                  submittedFrom: window.location.href,
+                },
+                answers: fields.map((field) => {
+                  const fieldName = `field-${field.id}`;
+                  const values = formData.getAll(fieldName);
+                  const value = field.type === "checkboxes"
+                    ? values.map((item) => String(item))
+                    : values[0] === undefined
+                      ? undefined
+                      : String(values[0]);
+
+                  return {
+                    fieldId: field.id,
+                    value,
+                  };
+                }),
+              });
+
+              if (response.redirectUrl) {
+                window.location.assign(response.redirectUrl);
                 return;
               }
 
+              setThankYouMessage(response.thankYouMessage);
               setSubmitted(true);
             }}
           >
@@ -170,11 +200,16 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
               />
             ))}
             <button
-              className="mt-7 flex h-11 items-center gap-2 rounded-[5px] bg-[#0e639c] px-5 text-[14px] font-medium text-white hover:bg-[#1177bb]"
+              className="mt-7 flex h-11 items-center gap-2 rounded-[5px] bg-[#0e639c] px-5 text-[14px] font-medium text-white hover:bg-[#1177bb] disabled:cursor-wait disabled:opacity-70"
+              disabled={submitFormMutation.isPending}
               type="submit"
             >
-              <Send className="size-4" />
-              Submit
+              {submitFormMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Send className="size-4" />
+              )}
+              {submitFormMutation.isPending ? "Submitting" : "Submit"}
             </button>
           </form>
         )}
