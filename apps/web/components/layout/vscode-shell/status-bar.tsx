@@ -2,6 +2,23 @@ import { Bell, CircleAlert, CircleX, GitBranch, Save, Send, UsersRound } from "l
 
 import type { FormFile } from "../app-shell";
 
+function formatLastUpdated(value?: Date | string) {
+  if (!value) {
+    return "not saved";
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "not saved";
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function StatusBar({
   activeForm,
   onPublishForm,
@@ -19,6 +36,8 @@ export function StatusBar({
           <span className="text-[#c7dcff]">
             {activeForm.name} / {activeForm.status}
             {activeForm.dirty ? " / unsaved" : ""}
+            {" / "}
+            updated {formatLastUpdated(activeForm.lastUpdatedAt)}
           </span>
         ) : null}
         <span className="flex items-center gap-1">

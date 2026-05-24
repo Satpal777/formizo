@@ -54,8 +54,14 @@ const choiceFieldTypes = new Set<FormFieldType>(["multiple_choice", "checkboxes"
 const fieldBlockPattern =
   /<!--\s*start\s+field\s+([a-z_]+)\s*-->([\s\S]*?)<!--\s*end\s+field\s*-->/g;
 
-function formatFieldBlock(suggestion: { type: FormFieldType; template: string; options?: string[] }) {
+function formatFieldBlock(
+  suggestion: { type: FormFieldType; template: string; options?: string[] },
+  id?: string,
+) {
   let block = `<!-- start field ${suggestion.type} -->\n`;
+  if (id) {
+    block += `id: ${id}\n`;
+  }
   block += `title: ${suggestion.template || "Untitled field"}\n`;
   block += `description: \n`;
   block += `placeholder: \n`;
@@ -76,6 +82,7 @@ function formatFieldBlockFromField(field: FormField) {
   const properties = field.properties ? JSON.stringify(field.properties) : "{}";
 
   let block = `<!-- start field ${field.type} -->\n`;
+  block += `id: ${field.id}\n`;
   block += `title: ${field.title || "Untitled field"}\n`;
   block += `description: ${field.description ?? ""}\n`;
   block += `placeholder: ${field.placeholder ?? ""}\n`;
@@ -125,6 +132,23 @@ function getFieldBlocks(content: string) {
   return Array.from(content.matchAll(fieldBlockPattern));
 }
 
+function formatLastUpdated(value?: Date | string) {
+  if (!value) {
+    return "Not saved yet";
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Not saved yet";
+  }
+
+  return `Last saved ${date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+}
+
 export function EditorArea({
   activeDocument,
   activeForm,
@@ -161,6 +185,11 @@ export function EditorArea({
         <div className="flex min-w-0 items-center gap-2 text-[12px]">
           <GitBranch className="size-4 text-[#89d185]" />
           <span className="truncate">{activeForm ? `${activeForm.status}${activeForm.dirty ? " / unsaved" : ""}` : "docs"}</span>
+          {activeForm ? (
+            <span className="hidden shrink-0 text-[#858585] sm:inline">
+              {formatLastUpdated(activeForm.lastUpdatedAt)}
+            </span>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           {activeForm ? (
@@ -404,7 +433,7 @@ function FormEditor({
         }
 
         return {
-          id: currentField?.id ?? `${type}-${Date.now()}-${fieldIndex}`,
+          id: values.id || currentField?.id || `${type}-${Date.now()}-${fieldIndex}`,
           type,
           title,
           description: values.description || undefined,
@@ -471,7 +500,7 @@ function FormEditor({
       saved: false,
     };
     const editor = editorRef.current;
-    const insertedText = formatFieldBlock(suggestion);
+    const insertedText = formatFieldBlock(suggestion, field.id);
     const nextFields = [...form.fields, field];
 
     if (editor) {
@@ -554,7 +583,10 @@ function FormEditor({
       <div className="relative min-w-0 border-r border-[#2b2b2b] bg-[#1e1e1e]">
         <div className="flex h-8 items-center justify-between border-b border-[#2b2b2b] px-4 text-[12px] text-[#9d9d9d]">
           <span>Markdown form editor</span>
-          <span>{contentLines.length} lines</span>
+          <span>
+            {form.fields.length === 0 ? "No fields yet" : `${form.fields.length} fields`} /{" "}
+            {contentLines.length} lines
+          </span>
         </div>
         <textarea
           ref={editorRef}

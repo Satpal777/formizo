@@ -12,10 +12,12 @@ import { TitleBar } from "./vscode-shell/title-bar";
 import { AuthModal } from "~/features/auth/components/auth-modal";
 import { useMe } from "~/hooks/api/use-auth";
 import {
-  useAddFormField,
+  useAddFormFields,
   useCreateForm,
+  useDeleteFormFields,
   useGetFormsByUserId,
   useUpdateForm,
+  useUpdateFormFields,
 } from "~/hooks/api/use-forms";
 
 export type FormFile = {
@@ -25,6 +27,8 @@ export type FormFile = {
   dirty: boolean;
   content: string;
   fields: FormField[];
+  savedFields: FormField[];
+  lastUpdatedAt?: Date | string;
   accessMode: "public" | "authenticated";
   resultVisibility: "hidden" | "after_submit" | "creator_only";
 };
@@ -62,13 +66,18 @@ export type FormField = {
 export type PublicDocumentId = "welcome.md" | "guide.md";
 export type ActiveDocument = PublicDocumentId | string;
 
+const fieldBlockPattern =
+  /<!--\s*start\s+field\s+([a-z_]+)\s*-->([\s\S]*?)<!--\s*end\s+field\s*-->/g;
+
 export function AppShell() {
   const meQuery = useMe();
   const isMeAuthenticated = meQuery.data?.authenticated === true;
   const formsQuery = useGetFormsByUserId(isMeAuthenticated);
   const createFormMutation = useCreateForm();
   const updateFormMutation = useUpdateForm();
-  const addFormFieldMutation = useAddFormField();
+  const addFormFieldsMutation = useAddFormFields();
+  const updateFormFieldsMutation = useUpdateFormFields();
+  const deleteFormFieldsMutation = useDeleteFormFields();
   const [forms, setForms] = useState<FormFile[]>([]);
   const [activeDocument, setActiveDocument] = useState<ActiveDocument>("welcome.md");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -122,8 +131,10 @@ export function AppShell() {
           dirty: false,
           accessMode: form.accessMode,
           resultVisibility: form.resultVisibility,
+          lastUpdatedAt: form.updatedAt,
           content: currentForm?.content ?? `# ${form.title}\n\n<!-- Type "/" for fields -->`,
           fields: currentForm?.fields ?? [],
+          savedFields: currentForm?.savedFields ?? [],
         };
       });
     });
@@ -165,6 +176,8 @@ export function AppShell() {
       resultVisibility: "creator_only",
       content: `# ${title}\n\n<!-- Type "/" for fields -->`,
       fields: [],
+      savedFields: [],
+      lastUpdatedAt: new Date(),
     };
 
     setForms((currentForms) => [...currentForms, form]);
@@ -248,10 +261,57 @@ export function AppShell() {
     return forms.find((form) => form.id === targetId) ?? null;
   }
 
-  async function saveNewFields(form: FormFile) {
-    const savedFields: FormField[] = [];
+  function getChoiceFieldOptions(field: FormField) {
+    return field.options?.map((option, optionIndex) => ({
+      label: option,
+      value:
+        option
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "") || `option-${optionIndex + 1}`,
+      order: (optionIndex + 1) * 1000,
+    }));
+  }
 
-    for (const [index, field] of form.fields.entries()) {
+  function getFieldPayload(formId: string, field: FormField, index: number) {
+    return {
+      formId,
+      type: field.type,
+      title: field.title,
+      description: field.description,
+      placeholder: field.placeholder,
+      order: (index + 1) * 1000,
+      validation: field.validation,
+      properties: field.properties,
+      options: getChoiceFieldOptions(field),
+    };
+  }
+
+  function getFieldSignature(formId: string, field: FormField, index: number) {
+    return JSON.stringify(getFieldPayload(formId, field, index));
+  }
+
+  function syncContentFieldIds(content: string, fields: FormField[]) {
+    let fieldIndex = 0;
+
+    return content.replace(fieldBlockPattern, (block, _type, blockBody: string) => {
+      const field = fields[fieldIndex];
+      fieldIndex += 1;
+
+      if (!field) {
+        return block;
+      }
+
+      if (/^id:\s*.+$/m.test(blockBody)) {
+        return block.replace(/^id:\s*.+$/m, `id: ${field.id}`);
+      }
+
+      return block.replace(/\n/, `\nid: ${field.id}\n`);
+    });
+  }
+
+  function validateFields(fields: FormField[]) {
+    for (const field of fields) {
       if (!field.title.trim()) {
         toast.error("Field label is required before saving");
         throw new Error("Field label is required before saving");
@@ -264,42 +324,87 @@ export function AppShell() {
         toast.error("Choice fields need at least one option before saving");
         throw new Error("Choice fields need at least one option before saving");
       }
+    }
+  }
 
-      if (field.saved) {
-        savedFields.push(field);
-        continue;
+  async function syncFormFields(form: FormFile) {
+    validateFields(form.fields);
+
+    const savedFieldsById = new Map(form.savedFields.map((field) => [field.id, field]));
+    const currentFieldIds = new Set(form.fields.map((field) => field.id));
+    const addedFields = form.fields.filter((field) => !field.saved || !savedFieldsById.has(field.id));
+    const deletedFieldIds = form.savedFields
+      .filter((field) => !currentFieldIds.has(field.id))
+      .map((field) => field.id);
+    const updatedFields = form.fields.filter((field, index) => {
+      const savedField = savedFieldsById.get(field.id);
+
+      if (!savedField || !field.saved) {
+        return false;
       }
 
-      const createdField = await addFormFieldMutation.mutateAsync({
-        formId: form.id,
-        type: field.type,
-        title: field.title,
-        description: field.description,
-        placeholder: field.placeholder,
-        order: (index + 1) * 1000,
-        validation: field.validation,
-        properties: field.properties,
-        options: field.options?.map((option, optionIndex) => ({
-          label: option,
-          value:
-            option
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/^-+|-+$/g, "") || `option-${optionIndex + 1}`,
-          order: (optionIndex + 1) * 1000,
-        })),
+      return getFieldSignature(form.id, field, index) !== getFieldSignature(form.id, savedField, index);
+    });
+
+    let nextFields = [...form.fields];
+
+    if (deletedFieldIds.length > 0) {
+      await deleteFormFieldsMutation.mutateAsync({ ids: deletedFieldIds });
+    }
+
+    if (updatedFields.length > 0) {
+      await updateFormFieldsMutation.mutateAsync({
+        fields: updatedFields.map((field, index) => {
+          const fieldIndex = form.fields.findIndex((currentField) => currentField.id === field.id);
+          const { formId: _formId, ...payload } = getFieldPayload(form.id, field, fieldIndex === -1 ? index : fieldIndex);
+
+          return {
+            id: field.id,
+            ...payload,
+          };
+        }),
+      });
+    }
+
+    if (addedFields.length > 0) {
+      const createdFields = await addFormFieldsMutation.mutateAsync({
+        fields: addedFields.map((field) => {
+          const fieldIndex = form.fields.findIndex((currentField) => currentField.id === field.id);
+
+          return getFieldPayload(form.id, field, fieldIndex);
+        }),
       });
 
-      savedFields.push({ ...field, id: createdField.id, saved: true });
+      let createdFieldIndex = 0;
+      nextFields = nextFields.map((field) => {
+        if (field.saved && savedFieldsById.has(field.id)) {
+          return field;
+        }
+
+        const createdField = createdFields.fields[createdFieldIndex];
+        createdFieldIndex += 1;
+
+        return createdField ? { ...field, id: createdField.id, saved: true } : field;
+      });
     }
+
+    nextFields = nextFields.map((field) => ({ ...field, saved: true }));
+    const nextContent = syncContentFieldIds(form.content, nextFields);
 
     setForms((currentForms) =>
       currentForms.map((currentForm) =>
-        currentForm.id === form.id ? { ...currentForm, fields: savedFields } : currentForm,
+        currentForm.id === form.id
+          ? {
+              ...currentForm,
+              content: nextContent,
+              fields: nextFields,
+              savedFields: nextFields.map((field) => ({ ...field })),
+            }
+          : currentForm,
       ),
     );
 
-    return savedFields;
+    return { fields: nextFields, content: nextContent };
   }
 
   async function handleSaveDraft(formId?: string) {
@@ -309,8 +414,11 @@ export function AppShell() {
       return;
     }
 
+    const savedAt = new Date();
+    let syncedForm: Awaited<ReturnType<typeof syncFormFields>>;
+
     try {
-      await saveNewFields(targetForm);
+      syncedForm = await syncFormFields(targetForm);
       await updateFormMutation.mutateAsync({
         id: targetForm.id,
         status: "draft",
@@ -322,8 +430,24 @@ export function AppShell() {
 
     setForms((currentForms) =>
       currentForms.map((form) =>
-        form.id === targetForm.id ? { ...form, status: "draft", dirty: false } : form,
+        form.id === targetForm.id
+          ? {
+              ...form,
+              content: syncedForm.content,
+              fields: syncedForm.fields,
+              savedFields: syncedForm.fields.map((field) => ({ ...field })),
+              status: "draft",
+              dirty: false,
+              lastUpdatedAt: savedAt,
+            }
+          : form,
       ),
+    );
+
+    toast.success(
+      syncedForm.fields.length === 0
+        ? "Draft saved. Add fields when you are ready."
+        : "Draft saved",
     );
   }
 
@@ -334,8 +458,11 @@ export function AppShell() {
       return;
     }
 
+    const savedAt = new Date();
+    let syncedForm: Awaited<ReturnType<typeof syncFormFields>>;
+
     try {
-      await saveNewFields(targetForm);
+      syncedForm = await syncFormFields(targetForm);
       await updateFormMutation.mutateAsync({
         id: targetForm.id,
         status: "published",
@@ -347,7 +474,17 @@ export function AppShell() {
 
     setForms((currentForms) =>
       currentForms.map((form) =>
-        form.id === targetForm.id ? { ...form, status: "published", dirty: false } : form,
+        form.id === targetForm.id
+          ? {
+              ...form,
+              content: syncedForm.content,
+              fields: syncedForm.fields,
+              savedFields: syncedForm.fields.map((field) => ({ ...field })),
+              status: "published",
+              dirty: false,
+              lastUpdatedAt: savedAt,
+            }
+          : form,
       ),
     );
   }

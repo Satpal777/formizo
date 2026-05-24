@@ -36,10 +36,26 @@ export function useUpdateForm() {
   });
 }
 
-export function useAddFormField() {
-  return trpc.forms.addFormField.useMutation({
+export function useAddFormFields() {
+  return trpc.forms.addFormFields.useMutation({
     onError: (error) => {
-      toast.error(error.message || "Failed to add form field");
+      toast.error(error.message || "Failed to add form fields");
+    },
+  });
+}
+
+export function useUpdateFormFields() {
+  return trpc.forms.updateFormFields.useMutation({
+    onError: (error) => {
+      toast.error(error.message || "Failed to update form fields");
+    },
+  });
+}
+
+export function useDeleteFormFields() {
+  return trpc.forms.deleteFormFields.useMutation({
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete form fields");
     },
   });
 }
