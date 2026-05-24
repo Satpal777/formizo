@@ -42,6 +42,12 @@ export const meOutput = z.object({
   }),
 });
 
+export const logoutInput = z.undefined().describe("undefined");
+
+export const logoutOutput = z.object({
+  success: z.boolean().describe("Whether logout was successful"),
+});
+
 export const forgotPasswordInput = z.object({
   email: z.email().max(255).describe("The email of the user requesting a password reset"),
 });

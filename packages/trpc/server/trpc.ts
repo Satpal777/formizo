@@ -5,7 +5,7 @@ import { verifyJWTToken } from "@repo/services/utils/utils";
 import { userService } from "./services";
 import { createContext } from "./context";
 import { env } from "../env";
-import { setAuthCookie } from "./routes/auth/cookie";
+import { clearAuthCookie, setAuthCookie } from "./routes/auth/cookie";
 
 const isProduction = env.NODE_ENV === "prod" || env.NODE_ENV === "production";
 const INTERNAL_SERVER_ERROR_MESSAGE = "Internal server error";
@@ -60,6 +60,7 @@ async function refreshAuthFromCookie(ctx: Awaited<ReturnType<typeof createContex
     setAuthCookie(ctx, tokens.token, tokens.refreshToken);
     return getUserIdFromToken(tokens.token);
   } catch {
+    clearAuthCookie(ctx);
     return null;
   }
 }
@@ -73,6 +74,7 @@ export const protectedProcedure = tRPCContext.procedure.use(async ({ ctx, next }
   const refreshedUserId = userId ?? (token ? await refreshAuthFromCookie(ctx) : null);
 
   if (!refreshedUserId) {
+    clearAuthCookie(ctx);
     throw new TRPCError({ code: UNAUTHORIZED, message: UNAUTHORIZED_MESSAGE });
   }
 

@@ -1,7 +1,7 @@
 import { userService } from "../../services";
 import { protectedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
-import { setAuthCookie } from "./cookie";
+import { clearAuthCookie, setAuthCookie } from "./cookie";
 import {
   createUserWithEmailAndPasswordInput,
   createUserWithEmailAndPasswordOutput,
@@ -9,6 +9,8 @@ import {
   forgotPasswordOutput,
   meInput,
   meOutput,
+  logoutInput,
+  logoutOutput,
   refreshTokenInput,
   refreshTokenOutput,
   resetPasswordInput,
@@ -56,6 +58,23 @@ export const authRouter = router({
     .output(meOutput)
     .query(async ({ ctx }) => {
       return userService.me({ id: ctx.user.id });
+    }),
+
+  logout: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/logout"),
+        tags: TAGS,
+        summary: "Log out",
+        description: "Clears authentication cookies.",
+      },
+    })
+    .input(logoutInput)
+    .output(logoutOutput)
+    .mutation(async ({ ctx }) => {
+      clearAuthCookie(ctx);
+      return { success: true };
     }),
 
   verifyEmail: publicProcedure
