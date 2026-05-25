@@ -25,6 +25,24 @@ FROM deps AS builder
 COPY apps apps
 COPY packages packages
 
+ENV IS_SERVER_BUILD="true"
+ENV BASE_URL="http://localhost:9000"
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+ENV JWT_SECRET="build-time-jwt-secret"
+ENV JWT_EXPIRES_IN="1h"
+ENV REFRESH_TOKEN_SECRET="build-time-refresh-secret"
+ENV REFRESH_TOKEN_EXPIRES_IN="30d"
+ENV RATE_LIMIT_ENABLED="true"
+ENV RATE_LIMIT_WINDOW_MS="60000"
+ENV RATE_LIMIT_MAX="120"
+ENV TRUST_PROXY="false"
+ENV DEVELOPER_PLAN_MAX_FORMS="10"
+ENV PRO_PLAN_MAX_FORMS="unlimited"
+ENV ONBOARDING_CTA_URL="http://localhost:3000"
+ENV EMAIL_VERIFICATION_URL="http://localhost:3000/verify-email"
+ENV SMTP_PORT="587"
+ENV SMTP_SECURE="false"
+
 RUN pnpm --filter @repo/api build
 
 FROM base AS runner
@@ -37,6 +55,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api ./apps/api
 COPY --from=builder /app/packages ./packages
 
-EXPOSE 8000
+EXPOSE 9000
 
 CMD ["pnpm", "--filter", "@repo/api", "start"]

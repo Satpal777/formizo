@@ -5,13 +5,29 @@ services:
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     container_name: formizo-api
-    env_file:
-      - apps/api/.env
-      - path: apps/api/.env.docker
-        required: false
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-9000}
+      BASE_URL: ${API_BASE_URL:-http://localhost:9000}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
+      REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-30d}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-120}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      DEVELOPER_PLAN_MAX_FORMS: ${DEVELOPER_PLAN_MAX_FORMS:-10}
+      PRO_PLAN_MAX_FORMS: ${PRO_PLAN_MAX_FORMS:-unlimited}
+      ONBOARDING_CTA_URL: ${ONBOARDING_CTA_URL:-http://localhost:3000}
+      EMAIL_VERIFICATION_URL: ${EMAIL_VERIFICATION_URL:-http://localhost:3000/verify-email}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
     ports:
       - "${API_PORT:-9000}:9000"
     healthcheck:
