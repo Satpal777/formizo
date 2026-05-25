@@ -26,6 +26,10 @@ const optionalString = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   requiredString.optional(),
 );
+const optionalPassword = z.preprocess(
+  (value) => (typeof value === "string" && value === "" ? undefined : value),
+  z.string().optional(),
+);
 const optionalUrl = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   requiredString.url().optional(),
@@ -42,7 +46,7 @@ const formValues = {
     .describe("Whether to allow anonymous responses for the form"),
   allowMultipleResponses: z.boolean().describe("Whether to allow multiple responses for the form"),
 
-  password: optionalString.describe("The password for the form"),
+  password: optionalPassword.describe("The password for the form"),
 
   resultVisibility: formResultVisibility.describe("The result visibility of the form"),
 
@@ -261,7 +265,7 @@ const formSubmissionAnswer = z.object({
 
 const formSubmissionItem = z.object({
   id: requiredString.describe("The response id"),
-  respondentUserId: z.string().nullable().describe("The authenticated respondent id"),
+  respondentName: z.string().nullable().describe("The respondent name"),
   respondentEmail: z.string().nullable().describe("The respondent email"),
   isAnonymous: z.boolean().describe("Whether the response is anonymous"),
   metadata: z.record(requiredString, z.any()).nullable().describe("Submission metadata"),

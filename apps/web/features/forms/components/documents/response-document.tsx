@@ -7,6 +7,16 @@ import { formatAnswerValue, formatSubmissionDate } from "../../lib/formatters";
 import type { FormFile } from "../../types";
 import { useGetFormSubmissions } from "~/hooks/api/use-forms";
 
+type Submission = NonNullable<ReturnType<typeof useGetFormSubmissions>["data"]>["submissions"][number];
+
+function getRespondentLabel(submission: Submission) {
+  if (submission.respondentName && submission.respondentEmail) {
+    return `${submission.respondentName} <${submission.respondentEmail}>`;
+  }
+
+  return submission.respondentName ?? submission.respondentEmail ?? (submission.isAnonymous ? "Anonymous" : "Authenticated user");
+}
+
 export function ResponseDocument({ form }: { form: FormFile }) {
   const submissionsQuery = useGetFormSubmissions(form.id, true);
   const submissions = useMemo(
@@ -42,11 +52,7 @@ export function ResponseDocument({ form }: { form: FormFile }) {
     // 2. Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      const respondent = (
-        submission.respondentEmail ??
-        submission.respondentUserId ??
-        "anonymous"
-      ).toLowerCase();
+      const respondent = getRespondentLabel(submission).toLowerCase();
       if (respondent.includes(query)) return true;
 
       const matchesAnswer = submission.answers.some((answer) =>
@@ -68,7 +74,7 @@ export function ResponseDocument({ form }: { form: FormFile }) {
       }
 
       if (sortColumn === "respondent") {
-        return (submission.respondentEmail ?? submission.respondentUserId ?? "anonymous").toLowerCase();
+        return getRespondentLabel(submission).toLowerCase();
       }
 
       if (sortColumn === "submittedAt") {
@@ -323,9 +329,7 @@ export function ResponseDocument({ form }: { form: FormFile }) {
                           {rowNumber}
                         </td>
                         <td className="truncate border-r border-[#2b2b2b] py-2 px-3 font-medium">
-                          {submission.respondentEmail ??
-                            submission.respondentUserId ??
-                            (submission.isAnonymous ? "Anonymous" : "User")}
+                          {getRespondentLabel(submission)}
                         </td>
                         <td className="truncate border-r border-[#2b2b2b] py-2 px-3 text-[#9d9d9d] group-hover:text-white" suppressHydrationWarning>
                           {formatSubmissionDate(submission.submittedAt)}
@@ -428,7 +432,7 @@ export function ResponseDocument({ form }: { form: FormFile }) {
                         <div className="grid grid-cols-2 gap-y-2 text-[12px]">
                           <span className="text-[#9d9d9d]">Respondent:</span>
                           <span className="text-white truncate font-medium">
-                            {selectedSubmission.respondentEmail ?? "Anonymous"}
+                            {getRespondentLabel(selectedSubmission)}
                           </span>
                           <span className="text-[#9d9d9d]">Timestamp:</span>
                           <span className="text-white font-medium" suppressHydrationWarning>

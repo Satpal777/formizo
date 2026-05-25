@@ -282,12 +282,15 @@ export class FormsService {
         id: formResponses.id,
         respondentUserId: formResponses.respondentUserId,
         respondentEmail: formResponses.respondentEmail,
+        respondentName: users.name,
+        respondentAccountEmail: users.email,
         isAnonymous: formResponses.isAnonymous,
         metadata: formResponses.metadata,
         submittedAt: formResponses.submittedAt,
         createdAt: formResponses.createdAt,
       })
       .from(formResponses)
+      .leftJoin(users, eq(formResponses.respondentUserId, users.id))
       .where(eq(formResponses.formId, input.formId))
       .orderBy(desc(formResponses.submittedAt));
 
@@ -323,11 +326,20 @@ export class FormsService {
     }
 
     return {
-      submissions: responses.map((response) => ({
-        ...response,
-        metadata: response.metadata as Record<string, unknown> | null,
-        answers: answersByResponseId.get(response.id) ?? [],
-      })),
+      submissions: responses.map((response) => {
+        const {
+          respondentUserId: _respondentUserId,
+          respondentAccountEmail,
+          ...responseValues
+        } = response;
+
+        return {
+          ...responseValues,
+          respondentEmail: response.respondentEmail ?? respondentAccountEmail,
+          metadata: response.metadata as Record<string, unknown> | null,
+          answers: answersByResponseId.get(response.id) ?? [],
+        };
+      }),
     };
   }
 

@@ -4,6 +4,7 @@ import { use, useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, CircleAlert, Loader2, Send } from "lucide-react";
 
 import { AuthModal } from "~/features/auth/components/auth-modal";
+import { useMe } from "~/hooks/api/use-auth";
 import { useGetPublishedFormBySlug, useSubmitPublishedForm } from "~/hooks/api/use-forms";
 
 type PublishedForm = NonNullable<
@@ -22,11 +23,16 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
   const [formPassword, setFormPassword] = useState("");
   const [submittedPassword, setSubmittedPassword] = useState<string | undefined>();
   const formQuery = useGetPublishedFormBySlug(slug, submittedPassword);
+  const meQuery = useMe();
   const submitFormMutation = useSubmitPublishedForm();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [thankYouMessage, setThankYouMessage] = useState<string | null>(null);
   const form = formQuery.data?.form;
+  const usesAuthenticatedCollectedEmail = form?.accessMode === "authenticated" && form.collectEmail;
+  const authenticatedRespondentEmail = usesAuthenticatedCollectedEmail
+    ? meQuery.data?.user.email
+    : undefined;
   const fields = useMemo(() => {
     const formFields = form?.fields ?? [];
 
@@ -111,6 +117,7 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
           onClose={() => setIsAuthModalOpen(false)}
           onSuccess={() => {
             setIsAuthModalOpen(false);
+            meQuery.refetch();
             formQuery.refetch();
           }}
         />
@@ -178,9 +185,10 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
               const response = await submitFormMutation.mutateAsync({
                 slug,
                 password: submittedPassword,
-                respondentEmail: typeof respondentEmail === "string" && respondentEmail
-                  ? respondentEmail
-                  : undefined,
+                respondentEmail: authenticatedRespondentEmail ??
+                  (typeof respondentEmail === "string" && respondentEmail
+                    ? respondentEmail
+                    : undefined),
                 metadata: {
                   userAgent: navigator.userAgent,
                   submittedFrom: window.location.href,
@@ -213,11 +221,16 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
             {form.collectEmail ? (
               <FieldFrame index={0} title="Email address" required>
                 <input
-                  className="h-11 w-full rounded-[5px] border border-[#3c3c3c] bg-[#181818] px-3 text-[14px] text-white outline-none focus:border-[#3794ff]"
+                  className="h-11 w-full rounded-[5px] border border-[#3c3c3c] bg-[#181818] px-3 text-[14px] text-white outline-none focus:border-[#3794ff] disabled:cursor-not-allowed disabled:text-[#858585]"
+                  disabled={usesAuthenticatedCollectedEmail}
                   name="respondentEmail"
                   placeholder="you@example.com"
+                  readOnly={usesAuthenticatedCollectedEmail}
                   required
                   type="email"
+                  {...(usesAuthenticatedCollectedEmail
+                    ? { value: authenticatedRespondentEmail ?? "" }
+                    : {})}
                 />
               </FieldFrame>
             ) : null}
@@ -230,7 +243,7 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
             ))}
             <button
               className="mt-7 flex h-11 items-center gap-2 rounded-[5px] bg-[#0e639c] px-5 text-[14px] font-medium text-white hover:bg-[#1177bb] disabled:cursor-wait disabled:opacity-70"
-              disabled={submitFormMutation.isPending}
+              disabled={submitFormMutation.isPending || (usesAuthenticatedCollectedEmail && !authenticatedRespondentEmail)}
               type="submit"
             >
               {submitFormMutation.isPending ? (
