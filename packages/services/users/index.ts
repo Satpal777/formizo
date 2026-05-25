@@ -29,7 +29,7 @@ import {
 } from "../utils/utils";
 import { env } from "../env";
 import type { JwtPayload, SignOptions } from "jsonwebtoken";
-import { sendVerificationEmail } from "../mail";
+import { sendOnboardingEmail, sendVerificationEmail } from "../mail";
 
 /**
  * UserService class provides methods for user management, including creating users with email and password,
@@ -179,6 +179,23 @@ export class UserService {
     }
   }
 
+  private async sendOnboardingEmailSafely(input: {
+    email: string;
+    name: string;
+  }) {
+    try {
+      await sendOnboardingEmail({
+        to: input.email,
+        name: input.name,
+      });
+
+      return true;
+    } catch (error) {
+      logger.error("Failed to send onboarding email", { error });
+      return false;
+    }
+  }
+
   /**
    * Creates a new user with the provided email and password.
    * @param input
@@ -219,6 +236,7 @@ export class UserService {
       userId: newUser.id,
       token: rawToken,
     });
+    await this.sendOnboardingEmailSafely({ email, name });
 
     return {
       emailSent,

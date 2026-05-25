@@ -35,6 +35,11 @@ const envSchema = z.object({
     .url()
     .default("http://localhost:3000/verify-email")
     .describe("Base URL used to build email verification links"),
+  ONBOARDING_CTA_URL: z
+    .string()
+    .url()
+    .default("http://localhost:3000")
+    .describe("URL used for onboarding email calls to action"),
   DEVELOPER_PLAN_MAX_FORMS: planFormLimitSchema
     .default(10)
     .describe("Maximum forms allowed on the Developer plan"),
