@@ -4,6 +4,7 @@ const envSchema = z.object({
   PORT: z.string().optional(),
   NODE_ENV: z.enum(["development", "prod", "production"]).default("development"),
   BASE_URL: z.string().default("http://localhost:8000"),
+  ONBOARDING_CTA_URL: z.string().default("http://localhost:3000"),
   RATE_LIMIT_ENABLED: z
     .enum(["true", "false"])
     .default("true")
