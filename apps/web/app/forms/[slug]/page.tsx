@@ -1,7 +1,8 @@
 "use client";
 
 import { use, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, ChevronDown, CircleAlert, Loader2, Send } from "lucide-react";
+import { CheckCircle2, ChevronDown, CircleAlert, Loader2, Send, Mail } from "lucide-react";
+import { toast } from "sonner";
 
 import { AuthModal } from "~/features/auth/components/auth-modal";
 import { useMe } from "~/hooks/api/use-auth";
@@ -10,6 +11,7 @@ import {
   useSubmitPublishedForm,
   useTrackPublishedFormStart,
   useTrackPublishedFormView,
+  useEmailSubmittedResponse,
 } from "~/hooks/api/use-forms";
 
 type PublishedForm = NonNullable<
@@ -30,12 +32,14 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
   const formQuery = useGetPublishedFormBySlug(slug, submittedPassword);
   const meQuery = useMe();
   const submitFormMutation = useSubmitPublishedForm();
+  const emailResponseMutation = useEmailSubmittedResponse();
   const trackViewMutation = useTrackPublishedFormView();
   const trackStartMutation = useTrackPublishedFormStart();
   const trackedViewFormId = useRef<string | null>(null);
   const trackedStartFormId = useRef<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedResponseId, setSubmittedResponseId] = useState<string | null>(null);
   const [thankYouMessage, setThankYouMessage] = useState<string | null>(null);
   const form = formQuery.data?.form;
   const usesAuthenticatedCollectedEmail = form?.accessMode === "authenticated" && form.collectEmail;
@@ -162,6 +166,9 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
   }
 
   if (submitted) {
+    const isAuth = meQuery.data?.authenticated === true;
+    const userEmail = meQuery.data?.user?.email;
+
     return (
       <main className="grid min-h-dvh place-items-center bg-[#181818] px-6 text-[#d4d4d4]">
         <section className="w-full max-w-[560px] rounded-[8px] border border-[#2b2b2b] bg-[#1e1e1e] p-8 text-center">
@@ -170,8 +177,37 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
             {thankYouMessage || form.thankYouMessage || "Thanks for your response"}
           </h1>
           <p className="mt-2 text-[13px] leading-6 text-[#9d9d9d]">
-            Your submission preview has been completed.
+            Your submission has been completed successfully.
           </p>
+
+          {isAuth && userEmail && submittedResponseId && (
+            <div className="mt-6 border-t border-[#2b2b2b] pt-6 flex flex-col items-center gap-3">
+              <p className="text-[12px] text-[#858585]">
+                Would you like a copy of your response sent to <span className="text-[#cccccc] font-medium">{userEmail}</span>?
+              </p>
+              
+              <button
+                onClick={async () => {
+                  try {
+                    await emailResponseMutation.mutateAsync({ responseId: submittedResponseId });
+                    toast.success("Response copy sent to your email!");
+                  } catch {
+                    // Handled by hook
+                  }
+                }}
+                disabled={emailResponseMutation.isPending}
+                className="flex h-10 items-center justify-center gap-2 rounded-[5px] bg-[#0e639c] px-5 text-[13px] font-semibold text-white hover:bg-[#1177bb] transition cursor-pointer disabled:opacity-50"
+                type="button"
+              >
+                {emailResponseMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Mail className="size-4" />
+                )}
+                <span>{emailResponseMutation.isPending ? "Sending Email..." : "Email Me My Response"}</span>
+              </button>
+            </div>
+          )}
         </section>
       </main>
     );
@@ -251,6 +287,7 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
                 return;
               }
 
+              setSubmittedResponseId(response.responseId);
               setThankYouMessage(response.thankYouMessage);
               setSubmitted(true);
             }}

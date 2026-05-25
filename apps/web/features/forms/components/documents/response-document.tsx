@@ -46,7 +46,7 @@ function FunnelDashboard({
   if (isError) {
     return (
       <div className="shrink-0 border-b border-[#2b2b2b] bg-[#1e1e1e] p-4 text-center text-[#f48771]">
-        <span>Failed to load funnel statistics from RPC.</span>
+        <span>Failed to load funnel statistics.</span>
       </div>
     );
   }

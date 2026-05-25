@@ -108,6 +108,14 @@ export function useSubmitPublishedForm() {
   });
 }
 
+export function useEmailSubmittedResponse() {
+  return trpc.forms.emailSubmittedResponse.useMutation({
+    onError: (error) => {
+      toast.error(error.message || "Failed to email response");
+    },
+  });
+}
+
 export function useTrackPublishedFormView() {
   return trpc.forms.trackPublishedFormView.useMutation();
 }

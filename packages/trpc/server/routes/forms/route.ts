@@ -5,6 +5,8 @@ import {
   createFormOutput,
   deleteFormFieldsInput,
   deleteFormFieldsOutput,
+  emailSubmittedResponseInput,
+  emailSubmittedResponseOutput,
   getFormFieldsInput,
   getFormFieldsOutput,
   getFormSubmissionsInput,
@@ -165,10 +167,12 @@ export const formsRouter = router({
     .input(getFormTrafficFunnelInput)
     .output(getFormTrafficFunnelOutput)
     .query(async ({ ctx, input }) => {
-      return formsService.getFormTrafficFunnel({
+      const response = await formsService.getFormTrafficFunnel({
         ...input,
         userId: ctx.user.id,
       });
+
+      return response;
     }),
 
   updateForm: protectedProcedure
@@ -224,6 +228,26 @@ export const formsRouter = router({
       return formsService.submitPublishedForm({
         ...input,
         respondentUserId: respondentUserId ?? undefined,
+      });
+    }),
+
+  emailSubmittedResponse: protectedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/emailSubmittedResponse"),
+        tags: TAGS,
+        protect: true,
+        summary: "Email a submitted response",
+        description: "Send the authenticated respondent a copy of their submitted form response.",
+      },
+    })
+    .input(emailSubmittedResponseInput)
+    .output(emailSubmittedResponseOutput)
+    .mutation(async ({ ctx, input }) => {
+      return formsService.emailSubmittedResponse({
+        ...input,
+        userId: ctx.user.id,
       });
     }),
 

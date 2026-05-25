@@ -6,6 +6,8 @@ import type {
   CreateFormOutput,
   DeleteFormFieldsInput,
   DeleteFormFieldsOutput,
+  EmailSubmittedResponseInput,
+  EmailSubmittedResponseOutput,
   GetFormFieldsInput,
   GetFormFieldsOutput,
   GetFormSubmissionsInput,
@@ -43,6 +45,7 @@ import {
 import { generatePasswordHash, hashPassword } from "../utils/utils";
 import { getFormPlanLimit, type FormPlan } from "./plans";
 import { users } from "@repo/database/models/user";
+import { sendFormResponseEmail } from "../mail";
 
 function createSlug(title: string) {
   const slug = title
@@ -63,6 +66,22 @@ type FieldWithOptions = Awaited<ReturnType<typeof getFieldsWithOptions>>[number]
 
 function toCount(value: string | number | bigint | null | undefined) {
   return Number(value ?? 0);
+}
+
+function formatSubmittedAnswerValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).join(", ");
+  }
+
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
 }
 
 type UsageStatsRow = {
@@ -632,6 +651,65 @@ export class FormsService {
       redirectUrl: form.redirectUrl,
       thankYouMessage: form.thankYouMessage,
     };
+  }
+
+  async emailSubmittedResponse(
+    input: EmailSubmittedResponseInput,
+  ): Promise<EmailSubmittedResponseOutput> {
+    const [response] = await db
+      .select({
+        id: formResponses.id,
+        respondentEmail: formResponses.respondentEmail,
+        submittedAt: formResponses.submittedAt,
+        formTitle: forms.title,
+        respondentName: users.name,
+        accountEmail: users.email,
+      })
+      .from(formResponses)
+      .innerJoin(forms, eq(formResponses.formId, forms.id))
+      .leftJoin(users, eq(formResponses.respondentUserId, users.id))
+      .where(
+        and(
+          eq(formResponses.id, input.responseId),
+          eq(formResponses.respondentUserId, input.userId),
+        ),
+      )
+      .limit(1);
+
+    if (!response) {
+      throw new Error("Response not found");
+    }
+
+    const recipientEmail = response.respondentEmail ?? response.accountEmail;
+
+    if (!recipientEmail) {
+      throw new Error("No email address is available for this response");
+    }
+
+    const answers = await db
+      .select({
+        question: formFields.title,
+        value: formAnswers.value,
+        order: formFields.order,
+        createdAt: formAnswers.createdAt,
+      })
+      .from(formAnswers)
+      .innerJoin(formFields, eq(formAnswers.fieldId, formFields.id))
+      .where(eq(formAnswers.responseId, response.id))
+      .orderBy(asc(formFields.order), asc(formAnswers.createdAt));
+
+    await sendFormResponseEmail({
+      to: recipientEmail,
+      respondentName: response.respondentName ?? recipientEmail,
+      formTitle: response.formTitle,
+      submittedAt: response.submittedAt,
+      answers: answers.map((answer) => ({
+        question: answer.question,
+        answer: formatSubmittedAnswerValue(answer.value),
+      })),
+    });
+
+    return { success: true };
   }
 
   async createForm(input: CreateFormInput): Promise<CreateFormOutput> {

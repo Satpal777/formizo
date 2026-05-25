@@ -15,6 +15,17 @@ interface SendOnboardingEmailInput {
   name: string;
 }
 
+interface SendFormResponseEmailInput {
+  to: string;
+  respondentName: string;
+  formTitle: string;
+  submittedAt: Date;
+  answers: Array<{
+    question: string;
+    answer: string;
+  }>;
+}
+
 interface MailMessage {
   from: string;
   to: string;
@@ -55,6 +66,14 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
+function resolveTemplatePath(templateName: string) {
+  try {
+    return require.resolve(`@repo/services/mail/templates/${templateName}`);
+  } catch {
+    return path.join(__dirname, "templates", templateName);
+  }
+}
+
 function createMailTransport() {
   if (!env.SMTP_HOST || !env.SMTP_FROM) {
     throw new Error("SMTP_HOST and SMTP_FROM must be configured to send email");
@@ -81,14 +100,7 @@ export async function sendVerificationEmail(input: SendVerificationEmailInput) {
   const verificationLink = createVerificationLink(input.userId, input.token);
   const transport = createMailTransport();
 
-  let templatePath = "";
-  try {
-    // Resolve absolute path using package name (robust for pnpm workspaces/symlinks)
-    templatePath = require.resolve("@repo/services/mail/templates/verification-email.html");
-  } catch {
-    // Fallback to relative file resolution
-    templatePath = path.join(__dirname, "templates", "verification-email.html");
-  }
+  const templatePath = resolveTemplatePath("verification-email.html");
 
   let htmlContent = "";
   try {
@@ -119,12 +131,7 @@ export async function sendOnboardingEmail(input: SendOnboardingEmailInput) {
   const escapedName = escapeHtml(firstName);
   const createFormUrl = env.ONBOARDING_CTA_URL;
 
-  let templatePath = "";
-  try {
-    templatePath = require.resolve("@repo/services/mail/templates/onboarding-email.html");
-  } catch {
-    templatePath = path.join(__dirname, "templates", "onboarding-email.html");
-  }
+  const templatePath = resolveTemplatePath("onboarding-email.html");
 
   let htmlContent = "";
   try {
@@ -159,6 +166,66 @@ export async function sendOnboardingEmail(input: SendOnboardingEmailInput) {
       "",
       "Create your first form:",
       createFormUrl,
+    ].join("\n"),
+    html: htmlContent,
+  });
+}
+
+export async function sendFormResponseEmail(input: SendFormResponseEmailInput) {
+  const transport = createMailTransport();
+  const respondentName = input.respondentName.trim() || "there";
+  const submittedAt = input.submittedAt.toLocaleString("en", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  const answersHtml = input.answers
+    .map(
+      (answer) => `
+        <tr>
+          <td style="padding: 14px 0; border-bottom: 1px solid #eef2f6;">
+            <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 700; color: #181818;">
+              ${escapeHtml(answer.question)}
+            </p>
+            <p style="margin: 0; font-size: 14px; line-height: 22px; color: #5a5a5a; white-space: pre-wrap;">
+              ${escapeHtml(answer.answer)}
+            </p>
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
+  const answersText = input.answers
+    .map((answer) => `${answer.question}\n${answer.answer}`)
+    .join("\n\n");
+  const templatePath = resolveTemplatePath("form-response-email.html");
+
+  let htmlContent = "";
+  try {
+    htmlContent = fs.readFileSync(templatePath, "utf8")
+      .replace(/{{name}}/g, escapeHtml(respondentName))
+      .replace(/{{formTitle}}/g, escapeHtml(input.formTitle))
+      .replace(/{{submittedAt}}/g, escapeHtml(submittedAt))
+      .replace(/{{answers}}/g, answersHtml);
+  } catch {
+    htmlContent = `
+      <p>Hi ${escapeHtml(respondentName)},</p>
+      <p>Here is a copy of your response to ${escapeHtml(input.formTitle)}.</p>
+      <p>Submitted: ${escapeHtml(submittedAt)}</p>
+      <table>${answersHtml}</table>
+    `;
+  }
+
+  await transport.sendMail({
+    from: env.SMTP_FROM!,
+    to: input.to,
+    subject: `Your response to ${input.formTitle}`,
+    text: [
+      `Hi ${respondentName},`,
+      "",
+      `Here is a copy of your response to ${input.formTitle}.`,
+      `Submitted: ${submittedAt}`,
+      "",
+      answersText,
     ].join("\n"),
     html: htmlContent,
   });

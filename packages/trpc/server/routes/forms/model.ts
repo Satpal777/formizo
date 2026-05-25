@@ -282,7 +282,7 @@ export const getFormTrafficFunnelOutput = z.object({
   views: z.number().int().nonnegative().describe("People who opened the form"),
   started: z.number().int().nonnegative().describe("People who began answering"),
   completed: z.number().int().nonnegative().describe("People who submitted the form"),
-  completionRate: z.number().min(0).max(1).describe("Completed divided by views"),
+  completionRate: z.number().int().nonnegative().describe("Completed divided by views"),
 });
 
 export const trackPublishedFormEventInput = z.object({
@@ -336,6 +336,14 @@ export const submitPublishedFormOutput = z.object({
   submittedAt: z.date().describe("The submission date"),
   redirectUrl: z.string().nullable().describe("The redirect URL after submit"),
   thankYouMessage: z.string().nullable().describe("The thank you message after submit"),
+});
+
+export const emailSubmittedResponseInput = z.object({
+  responseId: requiredString.uuid().describe("The submitted response id to email"),
+});
+
+export const emailSubmittedResponseOutput = z.object({
+  success: z.boolean().describe("Whether the response email was sent"),
 });
 
 export const getUsageStatsInput = z.void();
