@@ -29,6 +29,7 @@ import type { ActiveDocument, FormField, FormFile } from "~/features/forms/types
 import { useMe } from "~/hooks/api/use-auth";
 import {
   useAddFormFields,
+  useArchiveForm,
   useCreateForm,
   useDeleteFormFields,
   useGetFormFields,
@@ -46,6 +47,7 @@ export function AppShell() {
   const createFormMutation = useCreateForm();
   const updateFormMutation = useUpdateForm();
   const publishFormMutation = usePublishForm();
+  const archiveFormMutation = useArchiveForm();
   const addFormFieldsMutation = useAddFormFields();
   const updateFormFieldsMutation = useUpdateFormFields();
   const deleteFormFieldsMutation = useDeleteFormFields();
@@ -648,6 +650,37 @@ export function AppShell() {
     toast.success("Form published");
   }
 
+  async function handleArchiveForm(formId?: string) {
+    const targetForm = getTargetForm(formId);
+
+    if (!targetForm) {
+      return;
+    }
+
+    let archivedForm: Awaited<ReturnType<typeof archiveFormMutation.mutateAsync>>;
+
+    try {
+      archivedForm = await archiveFormMutation.mutateAsync({ id: targetForm.id });
+    } catch {
+      return;
+    }
+
+    setForms((currentForms) =>
+      currentForms.map((form) =>
+        form.id === targetForm.id
+          ? {
+              ...form,
+              status: archivedForm.status,
+              dirty: false,
+              lastUpdatedAt: archivedForm.updatedAt,
+            }
+          : form,
+      ),
+    );
+
+    toast.success("Form archived");
+  }
+
   function handleCreateFormFromCommand() {
     if (!isAuthenticated) {
       setIsAuthModalOpen(true);
@@ -767,6 +800,7 @@ export function AppShell() {
                 activeResponseForm={activeResponseForm}
                 isAuthenticated={isAuthenticated}
                 onCreateForm={handleCreateFormFromCommand}
+                onArchiveForm={handleArchiveForm}
                 onPublishForm={handlePublish}
                 onSaveDraft={handleSaveDraft}
                 onSelectDocument={setActiveDocument}
@@ -780,6 +814,7 @@ export function AppShell() {
       </div>
        <StatusBar
         activeForm={activeForm}
+        onArchiveForm={handleArchiveForm}
         onPublishForm={handlePublish}
         onSaveDraft={handleSaveDraft}
         currentPlan={currentPlan}

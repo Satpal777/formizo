@@ -107,6 +107,11 @@ export const publishFormInput = z.object({
   title: formValues.title.optional().describe("The title to save before publishing"),
 });
 
+export const archiveFormInput = z.object({
+  id: requiredString.uuid().describe("The id of the form to archive"),
+  userId: requiredString.uuid().describe("The authenticated creator id"),
+});
+
 export const createFormOutput = z.object({
   id: requiredString.describe("The id of the created form"),
   slug: requiredString.describe("The slug of the created form"),
@@ -124,6 +129,12 @@ export const publishFormOutput = z.object({
   status: z.literal("published").describe("The published form status"),
   updatedAt: z.date().describe("The form update date"),
   publishedAt: z.date().describe("The form publish date"),
+});
+
+export const archiveFormOutput = z.object({
+  id: requiredString.describe("The id of the archived form"),
+  status: z.literal("archived").describe("The archived form status"),
+  updatedAt: z.date().describe("The form update date"),
 });
 
 export const getFormsByUserIdInput = z.object({
@@ -337,7 +348,7 @@ export const publishedForm = z.object({
 export const getPublishedFormBySlugOutput = z.object({
   form: publishedForm.nullable().describe("The published form, if found"),
   unavailableReason: z
-    .enum(["not_found", "auth_required", "already_submitted"])
+    .enum(["not_found", "unpublished", "archived", "auth_required", "already_submitted"])
     .or(z.literal("password_required"))
     .optional()
     .describe("Why the form is unavailable"),
@@ -389,6 +400,8 @@ export type UpdateFormInput = z.infer<typeof updateFormInput>;
 export type UpdateFormOutput = z.infer<typeof updateFormOutput>;
 export type PublishFormInput = z.infer<typeof publishFormInput>;
 export type PublishFormOutput = z.infer<typeof publishFormOutput>;
+export type ArchiveFormInput = z.infer<typeof archiveFormInput>;
+export type ArchiveFormOutput = z.infer<typeof archiveFormOutput>;
 export type GetFormsByUserIdInput = z.infer<typeof getFormsByUserIdInput>;
 export type GetFormsByUserIdOutput = z.infer<typeof getFormsByUserIdOutput>;
 export type GetListedFormsInput = z.infer<typeof getListedFormsInput>;

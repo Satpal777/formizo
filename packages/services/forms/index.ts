@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 import type {
   AddFormFieldsInput,
   AddFormFieldsOutput,
+  ArchiveFormInput,
+  ArchiveFormOutput,
   CreateFormInput,
   CreateFormOutput,
   DeleteFormFieldsInput,
@@ -311,6 +313,7 @@ export class FormsService {
     const listedForms = await db
       .select({
         id: forms.id,
+        status: forms.status,
         title: forms.title,
         description: forms.description,
         slug: forms.slug,
@@ -516,6 +519,7 @@ export class FormsService {
     const [form] = await db
       .select({
         id: forms.id,
+        status: forms.status,
         title: forms.title,
         description: forms.description,
         slug: forms.slug,
@@ -531,10 +535,18 @@ export class FormsService {
         passwordSalt: forms.passwordSalt,
       })
       .from(forms)
-      .where(and(eq(forms.slug, input.slug), eq(forms.status, "published")));
+      .where(eq(forms.slug, input.slug));
 
     if (!form) {
       return { form: null, unavailableReason: "not_found" };
+    }
+
+    if (form.status === "archived") {
+      return { form: null, unavailableReason: "archived" };
+    }
+
+    if (form.status !== "published") {
+      return { form: null, unavailableReason: "unpublished" };
     }
 
     const requiresAuth =
@@ -567,7 +579,12 @@ export class FormsService {
 
     return {
       form: {
-        ...(({ passwordHash: _passwordHash, passwordSalt: _passwordSalt, ...safeForm }) => safeForm)(form),
+        ...(({
+          status: _status,
+          passwordHash: _passwordHash,
+          passwordSalt: _passwordSalt,
+          ...safeForm
+        }) => safeForm)(form),
         fields: await getFieldsWithOptions(form.id),
       },
     };
@@ -590,10 +607,18 @@ export class FormsService {
         passwordSalt: forms.passwordSalt,
       })
       .from(forms)
-      .where(and(eq(forms.slug, input.slug), eq(forms.status, "published")));
+      .where(eq(forms.slug, input.slug));
 
     if (!form) {
       throw new Error("Form is not available");
+    }
+
+    if (form.status === "archived") {
+      throw new Error("This form has been archived and no longer accepts responses");
+    }
+
+    if (form.status !== "published") {
+      throw new Error("This form is not published and does not accept responses");
     }
 
     const requiresAuth =
@@ -830,6 +855,34 @@ export class FormsService {
       status: "published",
       updatedAt: publishedForm.updatedAt,
       publishedAt: publishedForm.publishedAt,
+    };
+  }
+
+  async archiveForm(input: ArchiveFormInput): Promise<ArchiveFormOutput> {
+    const archivedAt = new Date();
+
+    const [archivedForm] = await db
+      .update(forms)
+      .set({
+        status: "archived",
+        visibility: "unlisted",
+        updatedAt: archivedAt,
+      })
+      .where(and(eq(forms.id, input.id), eq(forms.creatorId, input.userId)))
+      .returning({
+        id: forms.id,
+        status: forms.status,
+        updatedAt: forms.updatedAt,
+      });
+
+    if (!archivedForm || archivedForm.status !== "archived") {
+      throw new Error("Failed to archive form");
+    }
+
+    return {
+      id: archivedForm.id,
+      status: "archived",
+      updatedAt: archivedForm.updatedAt,
     };
   }
 

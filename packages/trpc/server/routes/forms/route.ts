@@ -1,6 +1,8 @@
 import {
   addFormFieldsInput,
   addFormFieldsOutput,
+  archiveFormInput,
+  archiveFormOutput,
   createFormProcedureInput,
   createFormOutput,
   deleteFormFieldsInput,
@@ -226,6 +228,26 @@ export const formsRouter = router({
     .output(publishFormOutput)
     .mutation(async ({ input }) => {
       return formsService.publishForm(input);
+    }),
+
+  archiveForm: protectedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/archiveForm"),
+        tags: TAGS,
+        protect: true,
+        summary: "Archive a form",
+        description: "Archive a creator-owned form and stop it from accepting public responses.",
+      },
+    })
+    .input(archiveFormInput)
+    .output(archiveFormOutput)
+    .mutation(async ({ ctx, input }) => {
+      return formsService.archiveForm({
+        ...input,
+        userId: ctx.user.id,
+      });
     }),
 
   submitPublishedForm: publicProcedure

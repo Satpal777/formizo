@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, Eye, FileText, CheckSquare, Sparkles, Search, ChevronDown } from "lucide-react";
+import { Archive, Shield, Eye, FileText, CheckSquare, Sparkles, Search, ChevronDown } from "lucide-react";
 import type { FormFile } from "../../types";
 
 function SettingItem({
@@ -44,12 +44,14 @@ function SettingItem({
 
 export function FormSettingsView({
   form,
+  onArchiveForm,
   onUpdateForm,
 }: {
   form: FormFile;
+  onArchiveForm: (formId?: string) => void;
   onUpdateForm: (formId: string, changes: Partial<FormFile>) => void;
 }) {
-  const [activeGroup, setActiveGroup] = useState<"general" | "responses" | "security" | "display" | "results">("general");
+  const [activeGroup, setActiveGroup] = useState<"general" | "responses" | "security" | "display" | "results" | "danger">("general");
   const [searchQuery, setSearchQuery] = useState("");
 
   const groups = [
@@ -58,7 +60,24 @@ export function FormSettingsView({
     { id: "security", label: "Security", icon: Shield, desc: "Access control and protection" },
     { id: "display", label: "Display", icon: Sparkles, desc: "Customize the respondent experience" },
     { id: "results", label: "Results", icon: Eye, desc: "Control results visibility and aggregation" },
+    { id: "danger", label: "Danger", icon: Archive, desc: "Archive and lifecycle controls" },
   ] as const;
+
+  function handleArchiveForm() {
+    if (form.status === "archived") {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Archive this form? It will be removed from public listings and stop accepting responses.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    onArchiveForm(form.id);
+  }
 
   return (
     <div className="flex h-[calc(100%-36px)] w-full bg-[#1e1e1e]">
@@ -367,6 +386,25 @@ export function FormSettingsView({
                   onChange={(e) => onUpdateForm(form.id, { showCharts: e.target.checked })}
                   type="checkbox"
                 />
+              }
+            />
+
+            <SettingItem
+              activeGroup={activeGroup}
+              searchQuery={searchQuery}
+              group="danger"
+              label="Archive Form"
+              description="Move this form out of public availability and stop all future submissions."
+              control={
+                <button
+                  className="flex h-8 items-center gap-1.5 rounded-[4px] border border-[#f85149]/70 bg-[#da3633] px-3 text-[12px] font-semibold text-white transition hover:border-[#ff7b72] hover:bg-[#f85149] disabled:cursor-not-allowed disabled:border-[#3c3c3c] disabled:bg-[#2a2a2a] disabled:text-[#858585]"
+                  disabled={form.status === "archived"}
+                  onClick={handleArchiveForm}
+                  type="button"
+                >
+                  <Archive className="size-3.5" />
+                  {form.status === "archived" ? "Archived" : "Archive"}
+                </button>
               }
             />
           </div>

@@ -107,6 +107,20 @@ export function usePublishForm() {
   });
 }
 
+export function useArchiveForm() {
+  const utils = trpc.useUtils();
+
+  return trpc.forms.archiveForm.useMutation({
+    onSuccess: () => {
+      utils.forms.getFormsByUserId.invalidate();
+      utils.forms.getListedForms.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to archive form");
+    },
+  });
+}
+
 export function useSubmitPublishedForm() {
   return trpc.forms.submitPublishedForm.useMutation({
     onError: (error) => {

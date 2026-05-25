@@ -26,6 +26,7 @@ type EditorAreaProps = {
   activeResponseForm: FormFile | null;
   isAuthenticated: boolean;
   onCreateForm: () => void;
+  onArchiveForm: (formId?: string) => void;
   onPublishForm: (formId?: string) => void;
   onSaveDraft: (formId?: string) => void;
   onSelectDocument: (documentId: ActiveDocument) => void;
@@ -40,6 +41,7 @@ export function EditorArea({
   activeResponseForm,
   isAuthenticated,
   onCreateForm,
+  onArchiveForm,
   onPublishForm,
   onSaveDraft,
   onSelectDocument,
@@ -78,7 +80,11 @@ export function EditorArea({
 
       {activeForm ? (
         editorMode === "settings" ? (
-          <FormSettingsView form={activeForm} onUpdateForm={onUpdateForm} />
+          <FormSettingsView
+            form={activeForm}
+            onArchiveForm={onArchiveForm}
+            onUpdateForm={onUpdateForm}
+          />
         ) : (
           <FormEditor
             form={activeForm}

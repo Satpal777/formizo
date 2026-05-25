@@ -1,10 +1,11 @@
-import { Bell, CircleAlert, CircleX, GitBranch, Save, Send, UsersRound, Sparkles, Zap } from "lucide-react";
+import { Archive, Bell, CircleAlert, CircleX, GitBranch, Save, Send, UsersRound, Sparkles, Zap } from "lucide-react";
 
 import { formatLastUpdated } from "~/features/forms/lib/formatters";
 import type { FormFile } from "~/features/forms/types";
 
 export function StatusBar({
   activeForm,
+  onArchiveForm,
   onPublishForm,
   onSaveDraft,
   currentPlan = "free",
@@ -12,6 +13,7 @@ export function StatusBar({
   onSelectDocument,
 }: {
   activeForm: FormFile | null;
+  onArchiveForm: (formId?: string) => void;
   onPublishForm: (formId?: string) => void;
   onSaveDraft: (formId?: string) => void;
   currentPlan?: "free" | "pro";
@@ -71,11 +73,22 @@ export function StatusBar({
             <button
               className="flex items-center gap-1 hover:text-[#c7dcff]"
               onClick={() => onPublishForm(activeForm.id)}
+              disabled={activeForm.status === "archived"}
               type="button"
             >
               <Send className="size-3.5" />
               Publish
             </button>
+            {activeForm.status !== "archived" ? (
+              <button
+                className="flex items-center gap-1 hover:text-[#c7dcff]"
+                onClick={() => onArchiveForm(activeForm.id)}
+                type="button"
+              >
+                <Archive className="size-3.5" />
+                Archive
+              </button>
+            ) : null}
           </>
         ) : null}
         <UsersRound className="size-3.5 text-[#c7dcff]" />

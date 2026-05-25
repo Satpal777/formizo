@@ -76,9 +76,9 @@ export function StatsDocument() {
                     <span className="text-[#569cd6]">#</span>{" "}
                     <span className="font-semibold text-[#569cd6]">Formizo Platform Usage</span>
                   </div>
-                  <div className="text-[#6a9955] mt-1">{"<!-- Real-time metrics from production database -->"}</div>
+                  <div className="text-[#6a9955] mt-1">{"<!-- Real-time metrics of form -->"}</div>
                   <div className="mt-2 text-[#9cdcfe]">
-                    This markdown summary presents the real-time statistics fetched from the Formizo RPC service.
+                    This markdown summary presents the real-time statistics of the form.
                   </div>
                   
                   <div className="mt-4 text-[#569cd6]">## Aggregate Metrics</div>
@@ -107,10 +107,6 @@ export function StatsDocument() {
                     <span className="text-[#569cd6]">-</span>{" "}
                     <span className="text-[#9cdcfe]">Creators:</span>{" "}
                     <span className="text-[#b5cea8] font-bold">{creators}</span>
-                  </div>
-
-                  <div className="mt-6 text-[#6a9955]">
-                    {"* Note: Stats are computed on-demand from the SQL database layer."}
                   </div>
                 </>
               )}
@@ -141,7 +137,7 @@ export function StatsDocument() {
               {isLoading ? (
                 <span className="flex items-center gap-1.5 text-xs text-[#d7ba7d]">
                   <span className="size-2 rounded-full bg-[#d7ba7d] animate-pulse" />
-                  Loading RPC data...
+                  Loading data...
                 </span>
               ) : isError ? (
                 <span className="flex items-center gap-1.5 text-xs text-[#f48771]">

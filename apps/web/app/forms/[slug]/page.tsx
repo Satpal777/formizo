@@ -96,6 +96,8 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
     const authRequired = formQuery.data?.unavailableReason === "auth_required";
     const passwordRequired = formQuery.data?.unavailableReason === "password_required";
     const alreadySubmitted = formQuery.data?.unavailableReason === "already_submitted";
+    const archived = formQuery.data?.unavailableReason === "archived";
+    const unpublished = formQuery.data?.unavailableReason === "unpublished";
 
     return (
       <main className="grid min-h-dvh place-items-center bg-[#181818] px-6 text-[#d4d4d4]">
@@ -108,7 +110,11 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
                 ? "Password required"
                 : alreadySubmitted
                   ? "Already submitted"
-                  : "Form unavailable"}
+                  : archived
+                    ? "Form archived"
+                    : unpublished
+                      ? "Form unpublished"
+                      : "Form unavailable"}
           </h1>
           <p className="mt-2 text-[13px] leading-6 text-[#9d9d9d]">
             {authRequired
@@ -117,7 +123,11 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
                 ? "Enter the form password to continue."
                 : alreadySubmitted
                   ? "This form only allows one response, and your account has already submitted it."
-                  : "This form is not published or the link is no longer valid."}
+                  : archived
+                    ? "This form has been archived and no longer accepts responses."
+                    : unpublished
+                      ? "This form is not published yet and is not accepting responses."
+                      : "This form is not published or the link is no longer valid."}
           </p>
           {authRequired ? (
             <button
