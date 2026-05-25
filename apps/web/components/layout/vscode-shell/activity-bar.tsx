@@ -4,7 +4,6 @@ import {
   Bug,
   Files,
   GitFork,
-  Menu,
   MonitorDot,
   Search,
   Settings,
@@ -14,11 +13,13 @@ import {
   Shield,
   LogOut,
   LogIn,
+  Globe,
 } from "lucide-react";
 
 const topItems = [
   { label: "Explorer", icon: Files, active: true },
   { label: "Search", icon: Search },
+  { label: "Community", icon: Globe },
   { label: "Source Control", icon: GitFork },
   { label: "Run and Debug", icon: Bug },
   { label: "Remote Explorer", icon: MonitorDot },
@@ -46,14 +47,7 @@ export function ActivityBar({
 }) {
   return (
     <nav className="flex h-full flex-col items-center border-r border-[#2b2b2b] bg-[#181818]">
-      <button
-        aria-label="Menu"
-        className="mt-1.5 grid size-8 place-items-center text-[#a0a0a0] transition hover:text-white"
-      >
-        <Menu className="size-4" />
-      </button>
-
-      <div className="mt-4 flex w-full flex-1 flex-col items-center gap-1.5">
+      <div className="mt-1.5 flex w-full flex-1 flex-col items-center gap-1.5">
         {topItems.map((item) => {
           const isActive = item.label === activeTab;
           return (

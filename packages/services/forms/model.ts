@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const formStatus = z.enum(["draft", "published", "archived"]);
 const formAccessMode = z.enum(["public", "authenticated"]);
+const formVisibility = z.enum(["listed", "unlisted"]);
 const formResultVisibility = z.enum(["hidden", "after_submit", "creator_only"]);
 const formFieldType = z.enum([
   "short_text",
@@ -39,6 +40,7 @@ const formValues = {
   title: requiredString.max(255).describe("The title of the form"),
   description: requiredString.describe("The description of the form"),
   status: formStatus.describe("The status of the form"),
+  visibility: formVisibility.describe("Whether the form is listed in public Explore"),
 
   accessMode: formAccessMode.describe("The access mode of the form"),
   allowAnonymousResponses: z
@@ -71,6 +73,7 @@ export const createFormInput = z.object({
   title: formValues.title,
   description: formValues.description,
   status: formValues.status.default("draft"),
+  visibility: formValues.visibility.default("unlisted"),
 
   accessMode: formValues.accessMode.default("public"),
   allowAnonymousResponses: formValues.allowAnonymousResponses.default(true),
@@ -133,6 +136,7 @@ export const formListItem = z.object({
   description: z.string().nullable().describe("The form description"),
   slug: requiredString.describe("The form slug"),
   status: formStatus.describe("The form status"),
+  visibility: formVisibility.describe("Whether the form is listed in public Explore"),
   accessMode: formAccessMode.describe("The access mode of the form"),
   allowAnonymousResponses: z.boolean().describe("Whether anonymous responses are allowed"),
   allowMultipleResponses: z.boolean().describe("Whether multiple responses are allowed"),
@@ -153,6 +157,23 @@ export const formListItem = z.object({
 
 export const getFormsByUserIdOutput = z.object({
   forms: z.array(formListItem),
+});
+
+export const listedFormItem = z.object({
+  id: requiredString.describe("The form id"),
+  title: requiredString.describe("The form title"),
+  description: z.string().nullable().describe("The form description"),
+  slug: requiredString.describe("The form slug"),
+  viewCount: z.number().int().nonnegative().describe("Number of public form views"),
+  responseCount: z.number().int().nonnegative().describe("Number of submitted responses"),
+  publishedAt: z.date().nullable().describe("The form publish date"),
+  createdAt: z.date().describe("The form creation date"),
+});
+
+export const getListedFormsInput = z.void();
+
+export const getListedFormsOutput = z.object({
+  forms: z.array(listedFormItem).describe("Published public forms listed in Explore"),
 });
 
 export const getFormFieldsInput = z.object({
@@ -370,6 +391,8 @@ export type PublishFormInput = z.infer<typeof publishFormInput>;
 export type PublishFormOutput = z.infer<typeof publishFormOutput>;
 export type GetFormsByUserIdInput = z.infer<typeof getFormsByUserIdInput>;
 export type GetFormsByUserIdOutput = z.infer<typeof getFormsByUserIdOutput>;
+export type GetListedFormsInput = z.infer<typeof getListedFormsInput>;
+export type GetListedFormsOutput = z.infer<typeof getListedFormsOutput>;
 export type GetFormFieldsInput = z.infer<typeof getFormFieldsInput>;
 export type GetFormFieldsOutput = z.infer<typeof getFormFieldsOutput>;
 export type GetFormSubmissionsInput = z.infer<typeof getFormSubmissionsInput>;

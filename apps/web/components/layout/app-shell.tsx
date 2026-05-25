@@ -19,6 +19,7 @@ import { TitleBar } from "./vscode-shell/title-bar";
 import { AuthModal } from "~/features/auth/components/auth-modal";
 import { LimitReachedModal } from "./vscode-shell/limit-reached-modal";
 import { SearchPanel } from "./vscode-shell/search-panel";
+import { CommunityPanel } from "./vscode-shell/community-panel";
 import { getResponseFormId } from "~/features/forms/lib/documents";
 import {
   buildFormContent,
@@ -729,6 +730,8 @@ export function AppShell() {
                     setActiveSidebarTab("Explorer");
                   }}
                 />
+              ) : activeSidebarTab === "Community" ? (
+                <CommunityPanel />
               ) : (
                 <ExplorerPanel
                   activeDocument={activeDocument}

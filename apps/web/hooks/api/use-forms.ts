@@ -17,6 +17,13 @@ export function useGetUsageStats() {
   });
 }
 
+export function useGetListedForms() {
+  return trpc.forms.getListedForms.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useGetFormFields(formId: string | null, enabled: boolean) {
   return trpc.forms.getFormFields.useQuery(
     { formId: formId ?? "" },

@@ -650,11 +650,6 @@ export function ResponseDocument({ form }: { form: FormFile }) {
                               key={answer.id}
                               className="rounded-[6px] border border-[#2b2b2b] bg-[#181818] p-4 space-y-1.5 hover:border-[#3c3c3c] transition-all"
                             >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-medium tracking-wide uppercase text-[#858585] px-1.5 py-0.5 rounded-[3px] border border-[#2b2b2b] bg-[#252526]">
-                                  {answer.fieldType.replace("_", " ")}
-                                </span>
-                              </div>
                               <div className="text-[13px] font-semibold text-[#e5e5e5] leading-relaxed">
                                 {answer.fieldTitle}
                               </div>

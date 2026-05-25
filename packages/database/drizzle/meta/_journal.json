@@ -57,6 +57,13 @@
       "when": 1779727351604,
       "tag": "0007_shiny_loa",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779730784777,
+      "tag": "0008_groovy_xorn",
+      "breakpoints": true
     }
   ]
 }

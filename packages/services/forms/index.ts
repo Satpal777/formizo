@@ -12,6 +12,8 @@ import type {
   GetFormFieldsOutput,
   GetFormSubmissionsInput,
   GetFormSubmissionsOutput,
+  GetListedFormsInput,
+  GetListedFormsOutput,
   GetPublishedFormBySlugInput,
   GetPublishedFormBySlugOutput,
   GetFormsByUserIdInput,
@@ -30,7 +32,7 @@ import type {
   UpdateFormInput,
   UpdateFormOutput,
 } from "./model";
-import { and, asc, db, desc, eq, inArray, sql } from "@repo/database";
+import { and, asc, count, db, desc, eq, inArray, sql } from "@repo/database";
 import {
   formFieldOptions,
   formFields,
@@ -112,6 +114,7 @@ function buildFormValues(input: FormValues): FormWriteValues {
   const formValues: FormWriteValues = {};
 
   setIfDefined(formValues, "title", input.title);
+  setIfDefined(formValues, "visibility", input.visibility);
   setIfDefined(formValues, "accessMode", input.accessMode);
   setIfDefined(formValues, "allowAnonymousResponses", input.allowAnonymousResponses);
   setIfDefined(formValues, "collectEmail", input.collectEmail);
@@ -274,6 +277,7 @@ export class FormsService {
         description: forms.description,
         slug: forms.slug,
         status: forms.status,
+        visibility: forms.visibility,
         accessMode: forms.accessMode,
         allowAnonymousResponses: forms.allowAnonymousResponses,
         allowMultipleResponses: forms.allowMultipleResponses,
@@ -299,6 +303,38 @@ export class FormsService {
       forms: userForms.map(({ passwordHash, ...form }) => ({
         ...form,
         passwordProtected: Boolean(passwordHash),
+      })),
+    };
+  }
+
+  async getListedForms(_input: GetListedFormsInput): Promise<GetListedFormsOutput> {
+    const listedForms = await db
+      .select({
+        id: forms.id,
+        title: forms.title,
+        description: forms.description,
+        slug: forms.slug,
+        viewCount: forms.viewCount,
+        responseCount: count(formResponses.id),
+        publishedAt: forms.publishedAt,
+        createdAt: forms.createdAt,
+      })
+      .from(forms)
+      .leftJoin(formResponses, eq(formResponses.formId, forms.id))
+      .where(
+        and(
+          eq(forms.status, "published"),
+          eq(forms.accessMode, "public"),
+          eq(forms.visibility, "listed"),
+        ),
+      )
+      .groupBy(forms.id)
+      .orderBy(desc(forms.publishedAt), desc(forms.createdAt));
+
+    return {
+      forms: listedForms.map((form) => ({
+        ...form,
+        responseCount: toCount(form.responseCount),
       })),
     };
   }

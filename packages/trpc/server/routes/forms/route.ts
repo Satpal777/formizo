@@ -15,6 +15,8 @@ import {
   getFormTrafficFunnelOutput,
   getFormsByUserIdInput,
   getFormsByUserIdOutput,
+  getListedFormsInput,
+  getListedFormsOutput,
   getUsageStatsInput,
   getUsageStatsOutput,
   getPublishedFormBySlugInput,
@@ -53,6 +55,23 @@ export const formsRouter = router({
     .output(getUsageStatsOutput)
     .query(async () => {
       return formsService.getUsageStats();
+    }),
+
+  getListedForms: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getListedForms"),
+        tags: TAGS,
+        protect: false,
+        summary: "Get listed community forms",
+        description: "Return published public forms listed in Explore.",
+      },
+    })
+    .input(getListedFormsInput)
+    .output(getListedFormsOutput)
+    .query(async () => {
+      return formsService.getListedForms(undefined);
     }),
 
   getPublishedFormBySlug: publicProcedure

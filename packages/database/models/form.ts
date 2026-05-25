@@ -3,6 +3,7 @@ import { users } from "./user";
 
 export const formStatus = pgEnum("form_status", ["draft", "published", "archived"]);
 export const formAccessMode = pgEnum("form_access_mode", ["public", "authenticated"]);
+export const formVisibility = pgEnum("form_visibility", ["listed", "unlisted"]);
 export const formResultVisibility = pgEnum("form_result_visibility", ["hidden", "after_submit", "creator_only"]);
 export const formFieldType = pgEnum("form_field_type", [
   "short_text",
@@ -47,6 +48,7 @@ export const forms = pgTable("forms", {
   description: text("description"),
   slug: varchar("slug", { length: 255 }).notNull(),
   status: formStatus("status").notNull().default("draft"),
+  visibility: formVisibility("visibility").notNull().default("unlisted"),
 
   accessMode: formAccessMode("access_mode").notNull().default("public"),
   allowAnonymousResponses: boolean("allow_anonymous_responses").notNull().default(true),
