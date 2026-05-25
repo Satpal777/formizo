@@ -1,4 +1,64 @@
 services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    container_name: formizo-api
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+      DATABASE_URL: postgres://postgres:postgres@postgresdb:5432/dev
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?REFRESH_TOKEN_SECRET is required}
+      REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN:-30d}
+      EMAIL_VERIFICATION_URL: ${EMAIL_VERIFICATION_URL:-http://localhost:3000/verify-email}
+      ONBOARDING_CTA_URL: ${ONBOARDING_CTA_URL:-http://localhost:3000}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-120}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      DEVELOPER_PLAN_MAX_FORMS: ${DEVELOPER_PLAN_MAX_FORMS:-10}
+      PRO_PLAN_MAX_FORMS: ${PRO_PLAN_MAX_FORMS:-unlimited}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  api-migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    profiles:
+      - migrate
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgresdb:5432/dev
+    command: ["pnpm", "--filter", "@repo/database", "db:migrate"]
+
   postgresdb:
     image: postgres:15
     restart: unless-stopped
