@@ -53,7 +53,7 @@ process.on("SIGINT", () => {
 async function init() {
   try {
     server = http.createServer(expressApplication);
-    const PORT: number = env.PORT ? +env.PORT : 8000;
+    const PORT: number = env.PORT ? +env.PORT : 9000;
 
     server.on("error", (error) => {
       shutdownFromFatalError(error, "HTTP server error");

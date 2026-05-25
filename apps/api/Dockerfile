@@ -30,7 +30,7 @@ RUN pnpm --filter @repo/api build
 FROM base AS runner
 
 ENV NODE_ENV="production"
-ENV PORT="8000"
+ENV PORT="9000"
 
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml /app/turbo.json ./
 COPY --from=builder /app/node_modules ./node_modules
