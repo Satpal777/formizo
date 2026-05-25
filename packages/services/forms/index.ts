@@ -14,16 +14,21 @@ import type {
   GetPublishedFormBySlugOutput,
   GetFormsByUserIdInput,
   GetFormsByUserIdOutput,
+  GetFormTrafficFunnelInput,
+  GetFormTrafficFunnelOutput,
+  GetUsageStatsOutput,
   PublishFormInput,
   PublishFormOutput,
   SubmitPublishedFormInput,
   SubmitPublishedFormOutput,
+  TrackPublishedFormEventInput,
+  TrackPublishedFormEventOutput,
   UpdateFormFieldsInput,
   UpdateFormFieldsOutput,
   UpdateFormInput,
   UpdateFormOutput,
 } from "./model";
-import { and, asc, db, desc, eq, inArray } from "@repo/database";
+import { and, asc, db, desc, eq, inArray, sql } from "@repo/database";
 import {
   formFieldOptions,
   formFields,
@@ -55,6 +60,24 @@ type FormWriteValues = Partial<Omit<NewForm, "creatorId" | "slug">>;
 type FormFieldValues = Omit<AddFormFieldsInput["fields"][number], "options">;
 type FormFieldWriteValues = Partial<NewFormField>;
 type FieldWithOptions = Awaited<ReturnType<typeof getFieldsWithOptions>>[number];
+
+function toCount(value: string | number | bigint | null | undefined) {
+  return Number(value ?? 0);
+}
+
+type UsageStatsRow = {
+  formsCreated: string | number;
+  pollsPublished: string | number;
+  totalResponsesCollected: string | number;
+  activeUsers: string | number;
+  creators: string | number;
+};
+
+type FormTrafficFunnelRow = {
+  views: string | number;
+  started: string | number;
+  completed: string | number;
+};
 
 function setIfDefined<T extends object, K extends keyof T>(
   values: T,
@@ -340,6 +363,95 @@ export class FormsService {
           answers: answersByResponseId.get(response.id) ?? [],
         };
       }),
+    };
+  }
+
+  async getFormTrafficFunnel(
+    input: GetFormTrafficFunnelInput,
+  ): Promise<GetFormTrafficFunnelOutput> {
+    const result = await db.execute<FormTrafficFunnelRow>(sql`
+      select
+        ${forms.viewCount} as "views",
+        ${forms.startCount} as "started",
+        count(${formResponses.id}) as "completed"
+      from ${forms}
+      left join ${formResponses} on ${formResponses.formId} = ${forms.id}
+      where ${forms.id} = ${input.formId}
+        and ${forms.creatorId} = ${input.userId}
+      group by ${forms.id}, ${forms.viewCount}, ${forms.startCount}
+    `);
+    const funnel = result.rows[0];
+
+    if (!funnel) {
+      throw new Error("Form not found");
+    }
+
+    const views = toCount(funnel.views);
+    const completed = toCount(funnel.completed);
+
+    return {
+      views,
+      started: toCount(funnel.started),
+      completed,
+      completionRate: views > 0 ? completed / views : 0,
+    };
+  }
+
+  async trackPublishedFormView(
+    input: TrackPublishedFormEventInput,
+  ): Promise<TrackPublishedFormEventOutput> {
+    const [trackedForm] = await db
+      .update(forms)
+      .set({
+        viewCount: sql`${forms.viewCount} + 1`,
+      })
+      .where(and(eq(forms.id, input.formId), eq(forms.status, "published")))
+      .returning({ id: forms.id });
+
+    return { success: Boolean(trackedForm) };
+  }
+
+  async trackPublishedFormStart(
+    input: TrackPublishedFormEventInput,
+  ): Promise<TrackPublishedFormEventOutput> {
+    const [trackedForm] = await db
+      .update(forms)
+      .set({
+        startCount: sql`${forms.startCount} + 1`,
+      })
+      .where(and(eq(forms.id, input.formId), eq(forms.status, "published")))
+      .returning({ id: forms.id });
+
+    return { success: Boolean(trackedForm) };
+  }
+
+  async getUsageStats(): Promise<GetUsageStatsOutput> {
+    const statsResult = await db.execute<UsageStatsRow>(sql`
+      select
+        (select count(*) from ${forms}) as "formsCreated",
+        (select count(*) from ${forms} where ${forms.status} = 'published') as "pollsPublished",
+        (select count(*) from ${formResponses}) as "totalResponsesCollected",
+        (
+          select count(distinct "userId")
+          from (
+            select ${forms.creatorId} as "userId"
+            from ${forms}
+            union
+            select ${formResponses.respondentUserId} as "userId"
+            from ${formResponses}
+            where ${formResponses.respondentUserId} is not null
+          ) active_users
+        ) as "activeUsers",
+        (select count(distinct ${forms.creatorId}) from ${forms}) as "creators"
+    `);
+    const stats = statsResult.rows[0];
+
+    return {
+      formsCreated: toCount(stats?.formsCreated),
+      pollsPublished: toCount(stats?.pollsPublished),
+      totalResponsesCollected: toCount(stats?.totalResponsesCollected),
+      activeUsers: toCount(stats?.activeUsers),
+      creators: toCount(stats?.creators),
     };
   }
 

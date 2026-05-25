@@ -1,11 +1,16 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, ChevronDown, CircleAlert, Loader2, Send } from "lucide-react";
 
 import { AuthModal } from "~/features/auth/components/auth-modal";
 import { useMe } from "~/hooks/api/use-auth";
-import { useGetPublishedFormBySlug, useSubmitPublishedForm } from "~/hooks/api/use-forms";
+import {
+  useGetPublishedFormBySlug,
+  useSubmitPublishedForm,
+  useTrackPublishedFormStart,
+  useTrackPublishedFormView,
+} from "~/hooks/api/use-forms";
 
 type PublishedForm = NonNullable<
   NonNullable<ReturnType<typeof useGetPublishedFormBySlug>["data"]>["form"]
@@ -25,6 +30,10 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
   const formQuery = useGetPublishedFormBySlug(slug, submittedPassword);
   const meQuery = useMe();
   const submitFormMutation = useSubmitPublishedForm();
+  const trackViewMutation = useTrackPublishedFormView();
+  const trackStartMutation = useTrackPublishedFormStart();
+  const trackedViewFormId = useRef<string | null>(null);
+  const trackedStartFormId = useRef<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [thankYouMessage, setThankYouMessage] = useState<string | null>(null);
@@ -49,6 +58,24 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
 
     return Math.round(100 / fields.length);
   }, [fields.length]);
+
+  useEffect(() => {
+    if (!form || trackedViewFormId.current === form.id) {
+      return;
+    }
+
+    trackedViewFormId.current = form.id;
+    trackViewMutation.mutate({ formId: form.id });
+  }, [form, trackViewMutation]);
+
+  function trackStartOnce() {
+    if (!form || trackedStartFormId.current === form.id) {
+      return;
+    }
+
+    trackedStartFormId.current = form.id;
+    trackStartMutation.mutate({ formId: form.id });
+  }
 
   if (formQuery.isLoading) {
     return (
@@ -187,6 +214,7 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
         ) : (
           <form
             className="space-y-4"
+            onChangeCapture={trackStartOnce}
             onSubmit={async (event) => {
               event.preventDefault();
               const formData = new FormData(event.currentTarget);

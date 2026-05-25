@@ -67,6 +67,8 @@ export const forms = pgTable("forms", {
   thankYouMessage: text("thank_you_message"),
 
   settings: jsonb("settings"),
+  viewCount: integer("view_count").notNull().default(0),
+  startCount: integer("start_count").notNull().default(0),
 
   publishedAt: timestamp("published_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

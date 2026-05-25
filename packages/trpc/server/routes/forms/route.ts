@@ -9,14 +9,20 @@ import {
   getFormFieldsOutput,
   getFormSubmissionsInput,
   getFormSubmissionsOutput,
+  getFormTrafficFunnelInput,
+  getFormTrafficFunnelOutput,
   getFormsByUserIdInput,
   getFormsByUserIdOutput,
+  getUsageStatsInput,
+  getUsageStatsOutput,
   getPublishedFormBySlugInput,
   getPublishedFormBySlugOutput,
   publishFormInput,
   publishFormOutput,
   submitPublishedFormInput,
   submitPublishedFormOutput,
+  trackPublishedFormEventInput,
+  trackPublishedFormEventOutput,
   updateFormFieldsInput,
   updateFormFieldsOutput,
   updateFormInput,
@@ -30,6 +36,23 @@ const TAGS = ["Forms"];
 const getPath = generatePath("/forms");
 
 export const formsRouter = router({
+  getUsageStats: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getUsageStats"),
+        tags: TAGS,
+        protect: false,
+        summary: "Get platform usage stats",
+        description: "Return aggregate platform usage stats for public display.",
+      },
+    })
+    .input(getUsageStatsInput)
+    .output(getUsageStatsOutput)
+    .query(async () => {
+      return formsService.getUsageStats();
+    }),
+
   getPublishedFormBySlug: publicProcedure
     .meta({
       openapi: {
@@ -128,6 +151,26 @@ export const formsRouter = router({
       });
     }),
 
+  getFormTrafficFunnel: protectedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getFormTrafficFunnel"),
+        tags: TAGS,
+        protect: true,
+        summary: "Get form traffic funnel",
+        description: "Return view, start, completion, and completion-rate metrics for a form.",
+      },
+    })
+    .input(getFormTrafficFunnelInput)
+    .output(getFormTrafficFunnelOutput)
+    .query(async ({ ctx, input }) => {
+      return formsService.getFormTrafficFunnel({
+        ...input,
+        userId: ctx.user.id,
+      });
+    }),
+
   updateForm: protectedProcedure
     .meta({
       openapi: {
@@ -182,6 +225,40 @@ export const formsRouter = router({
         ...input,
         respondentUserId: respondentUserId ?? undefined,
       });
+    }),
+
+  trackPublishedFormView: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/trackPublishedFormView"),
+        tags: TAGS,
+        protect: false,
+        summary: "Track a published form view",
+        description: "Increment the view counter for a published form.",
+      },
+    })
+    .input(trackPublishedFormEventInput)
+    .output(trackPublishedFormEventOutput)
+    .mutation(async ({ input }) => {
+      return formsService.trackPublishedFormView(input);
+    }),
+
+  trackPublishedFormStart: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/trackPublishedFormStart"),
+        tags: TAGS,
+        protect: false,
+        summary: "Track a published form start",
+        description: "Increment the start counter for a published form.",
+      },
+    })
+    .input(trackPublishedFormEventInput)
+    .output(trackPublishedFormEventOutput)
+    .mutation(async ({ input }) => {
+      return formsService.trackPublishedFormStart(input);
     }),
 
   addFormFields: protectedProcedure

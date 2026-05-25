@@ -55,6 +55,6 @@ export type FormField = {
   saved?: boolean;
 };
 
-export type PublicDocumentId = "welcome.md" | "guide.md" | "pricing.md";
+export type PublicDocumentId = "welcome.md" | "guide.md" | "pricing.md" | "stats.md";
 export type ActiveDocument = PublicDocumentId | string;
 

@@ -278,6 +278,26 @@ export const getFormSubmissionsOutput = z.object({
   submissions: z.array(formSubmissionItem).describe("The form submissions"),
 });
 
+export const getFormTrafficFunnelInput = z.object({
+  formId: requiredString.uuid().describe("The form id whose funnel should be returned"),
+  userId: requiredString.uuid().describe("The authenticated creator id"),
+});
+
+export const getFormTrafficFunnelOutput = z.object({
+  views: z.number().int().nonnegative().describe("People who opened the form"),
+  started: z.number().int().nonnegative().describe("People who began answering"),
+  completed: z.number().int().nonnegative().describe("People who submitted the form"),
+  completionRate: z.number().min(0).max(1).describe("Completed divided by views"),
+});
+
+export const trackPublishedFormEventInput = z.object({
+  formId: requiredString.uuid().describe("The published form id to track"),
+});
+
+export const trackPublishedFormEventOutput = z.object({
+  success: z.boolean().describe("Whether the event was tracked"),
+});
+
 export const publishedForm = z.object({
   id: requiredString.describe("The form id"),
   title: requiredString.describe("The form title"),
@@ -323,6 +343,16 @@ export const submitPublishedFormOutput = z.object({
   thankYouMessage: z.string().nullable().describe("The thank you message after submit"),
 });
 
+export const getUsageStatsInput = z.void();
+
+export const getUsageStatsOutput = z.object({
+  formsCreated: z.number().int().nonnegative().describe("Total forms created"),
+  pollsPublished: z.number().int().nonnegative().describe("Total published forms"),
+  totalResponsesCollected: z.number().int().nonnegative().describe("Total responses collected"),
+  activeUsers: z.number().int().nonnegative().describe("Users with creator or respondent activity"),
+  creators: z.number().int().nonnegative().describe("Total users who have created at least one form"),
+});
+
 export type CreateFormInput = z.infer<typeof createFormInput>;
 export type CreateFormOutput = z.infer<typeof createFormOutput>;
 export type UpdateFormInput = z.infer<typeof updateFormInput>;
@@ -335,10 +365,16 @@ export type GetFormFieldsInput = z.infer<typeof getFormFieldsInput>;
 export type GetFormFieldsOutput = z.infer<typeof getFormFieldsOutput>;
 export type GetFormSubmissionsInput = z.infer<typeof getFormSubmissionsInput>;
 export type GetFormSubmissionsOutput = z.infer<typeof getFormSubmissionsOutput>;
+export type GetFormTrafficFunnelInput = z.infer<typeof getFormTrafficFunnelInput>;
+export type GetFormTrafficFunnelOutput = z.infer<typeof getFormTrafficFunnelOutput>;
+export type TrackPublishedFormEventInput = z.infer<typeof trackPublishedFormEventInput>;
+export type TrackPublishedFormEventOutput = z.infer<typeof trackPublishedFormEventOutput>;
 export type GetPublishedFormBySlugInput = z.infer<typeof getPublishedFormBySlugInput>;
 export type GetPublishedFormBySlugOutput = z.infer<typeof getPublishedFormBySlugOutput>;
 export type SubmitPublishedFormInput = z.infer<typeof submitPublishedFormInput>;
 export type SubmitPublishedFormOutput = z.infer<typeof submitPublishedFormOutput>;
+export type GetUsageStatsInput = z.infer<typeof getUsageStatsInput>;
+export type GetUsageStatsOutput = z.infer<typeof getUsageStatsOutput>;
 export type AddFormFieldsInput = z.infer<typeof addFormFieldsInput>;
 export type AddFormFieldsOutput = z.infer<typeof addFormFieldsOutput>;
 export type UpdateFormFieldsInput = z.infer<typeof updateFormFieldsInput>;

@@ -9,6 +9,7 @@ type CommandPaletteProps = {
   onCreateForm: () => void;
   onOpenGuide: () => void;
   onOpenWelcome: () => void;
+  onOpenStats: () => void;
   onPublishForm: () => void;
   onSaveDraft: () => void;
 };
@@ -49,6 +50,7 @@ export function CommandPalette({
   onCreateForm,
   onOpenGuide,
   onOpenWelcome,
+  onOpenStats,
   onPublishForm,
   onSaveDraft,
 }: CommandPaletteProps) {
@@ -82,6 +84,7 @@ export function CommandPalette({
       { kind: "command", label: "Create New Form", meta: "form", onSelect: onCreateForm },
       { kind: "command", label: "Open welcome.md", meta: "public", onSelect: onOpenWelcome },
       { kind: "command", label: "Open guide.md", meta: "public", onSelect: onOpenGuide },
+      { kind: "command", label: "Open stats.md", meta: "public", onSelect: onOpenStats },
       { kind: "command", label: "Show Pricing & Plans", meta: "public", onSelect: () => { window.location.href = "/pricing"; } },
       { kind: "command", label: "Save Draft", meta: "form", onSelect: onSaveDraft },
       { kind: "command", label: "Publish Form", meta: "form", onSelect: onPublishForm },
@@ -102,7 +105,7 @@ export function CommandPalette({
         recentlyOpened: index === 0,
       })),
     ];
-  }, [isAuthenticated, onAuthenticate, onCreateForm, onOpenGuide, onOpenWelcome, onPublishForm, onSaveDraft]);
+  }, [isAuthenticated, onAuthenticate, onCreateForm, onOpenGuide, onOpenWelcome, onOpenStats, onPublishForm, onSaveDraft]);
 
   useEffect(() => {
     if (isOpen) {

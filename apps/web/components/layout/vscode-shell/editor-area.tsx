@@ -12,6 +12,7 @@ import {
 
 import { VsCodeLogo } from "./vscode-logo";
 import { GuideDocument, WelcomeDocument, PricingDocument } from "~/features/forms/components/documents/public-documents";
+import { StatsDocument } from "~/features/forms/components/documents/stats-document";
 import { ResponseDocument } from "~/features/forms/components/documents/response-document";
 import { FormEditor } from "~/features/forms/components/editor/form-editor";
 import { FormSettingsView } from "~/features/forms/components/editor/form-settings-view";
@@ -95,6 +96,8 @@ export function EditorArea({
         <GuideDocument />
       ) : activeDocument === "pricing.md" ? (
         <PricingDocument />
+      ) : activeDocument === "stats.md" ? (
+        <StatsDocument />
       ) : (
         <WelcomeDocument
           isAuthenticated={isAuthenticated}

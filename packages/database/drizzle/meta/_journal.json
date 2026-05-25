@@ -50,6 +50,13 @@
       "when": 1779647225616,
       "tag": "0006_oval_madame_web",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779727351604,
+      "tag": "0007_shiny_loa",
+      "breakpoints": true
     }
   ]
 }

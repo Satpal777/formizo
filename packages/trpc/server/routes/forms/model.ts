@@ -274,6 +274,25 @@ export const getFormSubmissionsOutput = z.object({
   submissions: z.array(formSubmissionItem).describe("The form submissions"),
 });
 
+export const getFormTrafficFunnelInput = z.object({
+  formId: requiredString.uuid().describe("The form id whose funnel should be returned"),
+});
+
+export const getFormTrafficFunnelOutput = z.object({
+  views: z.number().int().nonnegative().describe("People who opened the form"),
+  started: z.number().int().nonnegative().describe("People who began answering"),
+  completed: z.number().int().nonnegative().describe("People who submitted the form"),
+  completionRate: z.number().min(0).max(1).describe("Completed divided by views"),
+});
+
+export const trackPublishedFormEventInput = z.object({
+  formId: requiredString.uuid().describe("The published form id to track"),
+});
+
+export const trackPublishedFormEventOutput = z.object({
+  success: z.boolean().describe("Whether the event was tracked"),
+});
+
 export const publishedForm = z.object({
   id: requiredString.describe("The form id"),
   title: requiredString.describe("The form title"),
@@ -317,4 +336,14 @@ export const submitPublishedFormOutput = z.object({
   submittedAt: z.date().describe("The submission date"),
   redirectUrl: z.string().nullable().describe("The redirect URL after submit"),
   thankYouMessage: z.string().nullable().describe("The thank you message after submit"),
+});
+
+export const getUsageStatsInput = z.void();
+
+export const getUsageStatsOutput = z.object({
+  formsCreated: z.number().int().nonnegative().describe("Total forms created"),
+  pollsPublished: z.number().int().nonnegative().describe("Total published forms"),
+  totalResponsesCollected: z.number().int().nonnegative().describe("Total responses collected"),
+  activeUsers: z.number().int().nonnegative().describe("Users with creator or respondent activity"),
+  creators: z.number().int().nonnegative().describe("Total users who have created at least one form"),
 });

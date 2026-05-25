@@ -795,6 +795,10 @@ export function AppShell() {
           setActiveDocument("welcome.md");
           setIsCommandPaletteOpen(false);
         }}
+        onOpenStats={() => {
+          setActiveDocument("stats.md");
+          setIsCommandPaletteOpen(false);
+        }}
         onPublishForm={() => {
           handlePublish();
           setIsCommandPaletteOpen(false);

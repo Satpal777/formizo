@@ -13,7 +13,12 @@ export function getResponseFormId(documentId: ActiveDocument) {
 }
 
 export function isPublicDocument(documentId: ActiveDocument) {
-  return documentId === "welcome.md" || documentId === "guide.md" || documentId === "pricing.md";
+  return (
+    documentId === "welcome.md" ||
+    documentId === "guide.md" ||
+    documentId === "pricing.md" ||
+    documentId === "stats.md"
+  );
 }
 
 

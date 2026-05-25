@@ -11,6 +11,7 @@ import {
   MoreHorizontal,
   Pencil,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 
 import { getResponseDocumentId } from "~/features/forms/lib/documents";
@@ -55,7 +56,7 @@ export function ExplorerPanel({
   const formsFolderOpen = isFormActive;
 
   const isResponseActive = activeDocument.startsWith("responses:");
-  const isPublicActive = activeDocument === "welcome.md" || activeDocument === "guide.md" || activeDocument === "pricing.md";
+  const isPublicActive = activeDocument === "welcome.md" || activeDocument === "guide.md" || activeDocument === "pricing.md" || activeDocument === "stats.md";
 
   function getDefaultFormName() {
     return `survey-${forms.length + 1}`;
@@ -155,6 +156,12 @@ export function ExplorerPanel({
             icon={FileText}
             label="pricing.md"
             onClick={() => onSelectDocument("pricing.md")}
+          />
+          <TreeFile
+            active={activeDocument === "stats.md"}
+            icon={BarChart3}
+            label="stats.md"
+            onClick={() => onSelectDocument("stats.md")}
           />
         </TreeFolder>
 

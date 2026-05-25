@@ -1,13 +1,178 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { ClipboardList, RefreshCw, Eye, Code, Table, Copy, Search, ArrowUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClipboardList, RefreshCw, Eye, Code, Table, Copy, Search, ArrowUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, BarChart3, Play, CheckCircle2, TrendingDown } from "lucide-react";
 import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resizable-panels";
 import { toast } from "sonner";
 
 import { formatAnswerValue, formatSubmissionDate } from "../../lib/formatters";
 import type { FormFile } from "../../types";
-import { useGetFormSubmissions } from "~/hooks/api/use-forms";
+import { useGetFormSubmissions, useGetFormTrafficFunnel } from "~/hooks/api/use-forms";
 
 type Submission = NonNullable<ReturnType<typeof useGetFormSubmissions>["data"]>["submissions"][number];
+
+function FunnelDashboard({
+  funnelQuery,
+  submissionsCount,
+}: {
+  funnelQuery: any;
+  submissionsCount: number;
+}) {
+  const { data: funnel, isLoading, isError } = funnelQuery;
+
+  console.log(funnel);
+
+  // Use actual funnel progression values from RPC, ensuring consistency (views >= started >= completed)
+  const completed = funnel?.completed ?? submissionsCount;
+  const started = Math.max(funnel?.started ?? 0, completed);
+  const views = Math.max(funnel?.views ?? 0, started);
+  const completionRate = views > 0 ? completed / views : 0;
+  
+  // Percentages relative to views
+  const startsPct = views > 0 ? (started / views) * 100 : 0;
+  const completedPct = views > 0 ? (completed / views) * 100 : 0;
+
+  // Drop-off rates
+  const bounceRate = views > 0 ? ((views - started) / views) * 100 : 0;
+  const abandonRate = started > 0 ? ((started - completed) / started) * 100 : 0;
+
+  if (isLoading) {
+    return (
+      <div className="shrink-0 border-b border-[#2b2b2b] bg-[#1e1e1e] p-4 flex items-center justify-center text-[#858585] h-32">
+        <RefreshCw className="size-5 animate-spin mr-2 text-[#0078d4]" />
+        <span>Loading funnel analytics...</span>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="shrink-0 border-b border-[#2b2b2b] bg-[#1e1e1e] p-4 text-center text-[#f48771]">
+        <span>Failed to load funnel statistics from RPC.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="shrink-0 border-b border-[#2b2b2b] bg-[#1e1e1e] px-6 py-4 select-none">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-white">Traffic Funnel Overview</h3>
+          <p className="text-[11px] text-[#858585] mt-0.5">
+            Analysing respondent progression from opening the form to submission.
+          </p>
+        </div>
+        
+        {/* Quick summary stats */}
+        <div className="flex items-center gap-4 text-xs">
+          <div className="rounded bg-[#252526] border border-[#2b2b2b] px-3 py-1">
+            <span className="text-[#858585]">Completion Rate:</span>
+            <span className="text-[#89d185] font-bold ml-1.5">{Math.round(completionRate * 100)}%</span>
+          </div>
+          <div className="rounded bg-[#252526] border border-[#2b2b2b] px-3 py-1">
+            <span className="text-[#858585]">Total Submissions:</span>
+            <span className="text-white font-bold ml-1.5">{completed}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Funnel Visual Bars & Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6">
+        
+        {/* SVG Funnel Progression bar */}
+        <div className="rounded-[6px] border border-[#2b2b2b] bg-[#181818] p-4 flex flex-col justify-center">
+          <div className="space-y-4">
+            {/* Step 1: Views */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[11px]">
+                <span className="text-white font-medium flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-[#0078d4]" />
+                  1. Visited (Views)
+                </span>
+                <span className="font-mono text-[#cccccc] font-semibold">{views} views <span className="text-[#858585] font-normal">(100%)</span></span>
+              </div>
+              <div className="h-4 w-full bg-[#1e1e1e] rounded-sm overflow-hidden border border-[#2b2b2b]">
+                <div className="h-full bg-[#0078d4]/70 border-r-2 border-[#0078d4] rounded-sm transition-all duration-500" style={{ width: "100%" }} />
+              </div>
+            </div>
+
+            {/* Drop off 1 */}
+            {views > 0 && (
+              <div className="flex items-center gap-2 pl-4 text-[10px] text-[#f48771]">
+                <TrendingDown className="size-3" />
+                <span>{views - started} bounced ({Math.round(bounceRate)}% drop-off)</span>
+              </div>
+            )}
+
+            {/* Step 2: Started */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[11px]">
+                <span className="text-white font-medium flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-[#d7ba7d]" />
+                  2. Interacted (Started)
+                </span>
+                <span className="font-mono text-[#cccccc] font-semibold">{started} starts <span className="text-[#858585] font-normal">({Math.round(startsPct)}%)</span></span>
+              </div>
+              <div className="h-4 w-full bg-[#1e1e1e] rounded-sm overflow-hidden border border-[#2b2b2b]">
+                <div 
+                  className="h-full bg-[#d7ba7d]/70 border-r-2 border-[#d7ba7d] rounded-sm transition-all duration-500" 
+                  style={{ width: `${startsPct}%` }} 
+                />
+              </div>
+            </div>
+
+            {/* Drop off 2 */}
+            {started > 0 && (
+              <div className="flex items-center gap-2 pl-4 text-[10px] text-[#f48771]">
+                <TrendingDown className="size-3" />
+                <span>{started - completed} abandoned ({Math.round(abandonRate)}% drop-off)</span>
+              </div>
+            )}
+
+            {/* Step 3: Completed */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[11px]">
+                <span className="text-white font-medium flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-[#89d185]" />
+                  3. Submitted (Completed)
+                </span>
+                <span className="font-mono text-[#cccccc] font-semibold">{completed} responses <span className="text-[#858585] font-normal">({Math.round(completedPct)}%)</span></span>
+              </div>
+              <div className="h-4 w-full bg-[#1e1e1e] rounded-sm overflow-hidden border border-[#2b2b2b]">
+                <div 
+                  className="h-full bg-[#89d185]/70 border-r-2 border-[#89d185] rounded-sm transition-all duration-500" 
+                  style={{ width: `${completedPct}%` }} 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Conversion Metrics panel */}
+        <div className="grid grid-rows-2 gap-3 text-xs">
+          <div className="rounded-[6px] border border-[#2b2b2b] bg-[#252526] p-3 flex flex-col justify-between">
+            <span className="text-[#858585] uppercase text-[9px] font-bold tracking-wider">Start Conversion</span>
+            <div className="text-white text-lg font-bold mt-1">
+              {views > 0 ? Math.round((started / views) * 100) : 0}%
+            </div>
+            <span className="text-[10px] text-[#9d9d9d] mt-1">
+              Percentage of visitors who began filling the form.
+            </span>
+          </div>
+
+          <div className="rounded-[6px] border border-[#2b2b2b] bg-[#252526] p-3 flex flex-col justify-between">
+            <span className="text-[#858585] uppercase text-[9px] font-bold tracking-wider">Submission Conversion</span>
+            <div className="text-[#89d185] text-lg font-bold mt-1">
+              {started > 0 ? Math.round((completed / started) * 100) : 0}%
+            </div>
+            <span className="text-[10px] text-[#9d9d9d] mt-1">
+              Percentage of starters who finished and submitted.
+            </span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
 
 function getRespondentLabel(submission: Submission) {
   if (submission.respondentName && submission.respondentEmail) {
@@ -19,6 +184,8 @@ function getRespondentLabel(submission: Submission) {
 
 export function ResponseDocument({ form }: { form: FormFile }) {
   const submissionsQuery = useGetFormSubmissions(form.id, true);
+  const funnelQuery = useGetFormTrafficFunnel(form.id, true);
+
   const submissions = useMemo(
     () => submissionsQuery.data?.submissions ?? [],
     [submissionsQuery.data?.submissions],
@@ -26,12 +193,19 @@ export function ResponseDocument({ form }: { form: FormFile }) {
 
   const detailPanelRef = useRef<PanelImperativeHandle>(null);
   const [isDetailCollapsed, setIsDetailCollapsed] = useState(false);
+  const [isFunnelCollapsed, setIsFunnelCollapsed] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<"detail" | "json">("detail");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "anonymous" | "authenticated">("all");
   const [sortColumn, setSortColumn] = useState<string>("submittedAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  // Unified refresh handler that triggers reload of all queries under the response view
+  const handleRefresh = () => {
+    void submissionsQuery.refetch();
+    void funnelQuery.refetch();
+  };
 
   // Select first submission by default if none is selected
   useEffect(() => {
@@ -164,11 +338,11 @@ export function ResponseDocument({ form }: { form: FormFile }) {
               </h1>
             </div>
             <button
-              className="flex h-8 items-center gap-1.5 rounded-[3px] px-2.5 text-[12px] text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
-              onClick={() => submissionsQuery.refetch()}
+              className="flex h-8 items-center gap-1.5 rounded-[3px] px-2.5 text-[12px] text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white cursor-pointer"
+              onClick={handleRefresh}
               type="button"
             >
-              <RefreshCw className="size-3.5" />
+              <RefreshCw className={`size-3.5 ${submissionsQuery.isFetching || funnelQuery.isFetching ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </div>
@@ -186,9 +360,9 @@ export function ResponseDocument({ form }: { form: FormFile }) {
   }
 
   return (
-    <div className="h-[calc(100%-72px)] w-full bg-[#181818] text-[12px] text-[#cccccc]">
+    <div className="flex h-[calc(100%-72px)] w-full flex-col bg-[#181818] text-[12px] text-[#cccccc]">
       {/* Top Toolbar (includes Search, Filter, Refresh, and Collapse/Expand) */}
-      <div className="flex h-11 items-center justify-between border-b border-[#2b2b2b] bg-[#1e1e1e] px-4 text-[#cccccc]">
+      <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#2b2b2b] bg-[#1e1e1e] px-4 text-[#cccccc]">
         <div className="flex min-w-0 items-center gap-2">
           <ClipboardList className="size-4 text-[#89d185]" />
           <span className="truncate font-semibold text-white">{form.name.replace(/\.form$/, "")} responses</span>
@@ -225,18 +399,32 @@ export function ResponseDocument({ form }: { form: FormFile }) {
 
           {/* Refresh Button */}
           <button
-            className="flex h-7 items-center gap-1 rounded-[3px] px-2.5 text-[11px] hover:bg-[#2a2d2e] border border-[#3c3c3c]"
-            onClick={() => submissionsQuery.refetch()}
+            className="flex h-7 items-center gap-1 rounded-[3px] px-2.5 text-[11px] hover:bg-[#2a2d2e] border border-[#3c3c3c] cursor-pointer"
+            onClick={handleRefresh}
             type="button"
           >
-            <RefreshCw className={`size-3 ${submissionsQuery.isFetching ? "animate-spin" : ""}`} />
+            <RefreshCw className={`size-3 ${submissionsQuery.isFetching || funnelQuery.isFetching ? "animate-spin" : ""}`} />
             Refresh
+          </button>
+          {/* Funnel Stats Toggle Button */}
+          <button
+            onClick={() => setIsFunnelCollapsed(!isFunnelCollapsed)}
+            className={`flex h-7 items-center gap-1 rounded-[3px] px-2.5 text-[11px] border border-[#3c3c3c] transition-all duration-150 cursor-pointer ${
+              !isFunnelCollapsed
+                ? "bg-[#2d2d30] text-[#89d185] border-[#89d185] font-medium"
+                : "text-[#858585] hover:text-white hover:bg-[#2a2d2e]"
+            }`}
+            type="button"
+            title={isFunnelCollapsed ? "Show traffic funnel stats" : "Hide traffic funnel stats"}
+          >
+            <BarChart3 className="size-3.5 text-[#89d185]" />
+            <span>Funnel Stats</span>
           </button>
 
           {/* Details Panel Toggle Button */}
           <button
             onClick={toggleDetailPanel}
-            className={`flex h-7 items-center gap-1 rounded-[3px] px-2.5 text-[11px] border border-[#3c3c3c] transition-all duration-150 ${
+            className={`flex h-7 items-center gap-1 rounded-[3px] px-2.5 text-[11px] border border-[#3c3c3c] transition-all duration-150 cursor-pointer ${
               isDetailCollapsed
                 ? "text-[#858585] hover:text-white hover:bg-[#2a2d2e]"
                 : "bg-[#2d2d30] text-[#0078d4] border-[#0078d4] font-medium"
@@ -250,8 +438,14 @@ export function ResponseDocument({ form }: { form: FormFile }) {
         </div>
       </div>
 
+      {/* Funnel Analytics Dashboard */}
+      {!isFunnelCollapsed && (
+        <FunnelDashboard funnelQuery={funnelQuery} submissionsCount={submissions.length} />
+      )}
+
       {/* Resizable Split Layout */}
-      <Group className="h-[calc(100%-44px)] w-full" orientation="horizontal">
+      <div className="min-h-0 flex-1 w-full">
+        <Group className="h-full w-full" orientation="horizontal">
         {/* Left Panel: Spreadsheet Table View */}
         <Panel className="h-full min-w-0" defaultSize="62%" id="table-pane" minSize="40%">
           <div className="h-full w-full overflow-auto bg-[#181818]">
@@ -504,6 +698,7 @@ export function ResponseDocument({ form }: { form: FormFile }) {
           </div>
         </Panel>
       </Group>
+      </div>
     </div>
   );
 }

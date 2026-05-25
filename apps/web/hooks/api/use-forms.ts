@@ -10,6 +10,13 @@ export function useGetFormsByUserId(enabled: boolean) {
   });
 }
 
+export function useGetUsageStats() {
+  return trpc.forms.getUsageStats.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useGetFormFields(formId: string | null, enabled: boolean) {
   return trpc.forms.getFormFields.useQuery(
     { formId: formId ?? "" },
@@ -23,6 +30,17 @@ export function useGetFormFields(formId: string | null, enabled: boolean) {
 
 export function useGetFormSubmissions(formId: string | null, enabled: boolean) {
   return trpc.forms.getFormSubmissions.useQuery(
+    { formId: formId ?? "" },
+    {
+      enabled: enabled && Boolean(formId),
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  );
+}
+
+export function useGetFormTrafficFunnel(formId: string | null, enabled: boolean) {
+  return trpc.forms.getFormTrafficFunnel.useQuery(
     { formId: formId ?? "" },
     {
       enabled: enabled && Boolean(formId),
@@ -88,6 +106,14 @@ export function useSubmitPublishedForm() {
       toast.error(error.message || "Failed to submit form");
     },
   });
+}
+
+export function useTrackPublishedFormView() {
+  return trpc.forms.trackPublishedFormView.useMutation();
+}
+
+export function useTrackPublishedFormStart() {
+  return trpc.forms.trackPublishedFormStart.useMutation();
 }
 
 export function useAddFormFields() {
