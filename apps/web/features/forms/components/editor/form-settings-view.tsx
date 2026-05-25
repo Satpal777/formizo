@@ -150,6 +150,26 @@ export function FormSettingsView({
               }
             />
 
+            <SettingItem
+              activeGroup={activeGroup}
+              searchQuery={searchQuery}
+              group="general"
+              label="Explore Visibility"
+              description="Choose whether a published public form appears in Explore, or stays hidden and shareable only by direct link."
+              control={
+                <SelectControl
+                  onChange={(value) =>
+                    onUpdateForm(form.id, { visibility: value as FormFile["visibility"] })
+                  }
+                  options={[
+                    { label: "Public listed", value: "listed" },
+                    { label: "Unlisted", value: "unlisted" },
+                  ]}
+                  value={form.visibility}
+                />
+              }
+            />
+
             {/* Responses */}
             <SettingItem
               activeGroup={activeGroup}

@@ -6,6 +6,7 @@ import React, { useState } from "react";
 
 import { trpc } from "~/trpc/client";
 import { createTRPCHttpBatchClientClient } from "~/trpc/create-client";
+import { TooltipProvider } from "~/components/ui/tooltip";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,9 +32,12 @@ export const GlobalProviders: React.FC<{ children: React.ReactNode }> = ({ child
         disableTransitionOnChange
       >
         <trpc.Provider queryClient={queryClient} client={trpcClient}>
-          {children}
+          <TooltipProvider delayDuration={200}>
+            {children}
+          </TooltipProvider>
         </trpc.Provider>
       </NextThemesProvider>
     </QueryClientProvider>
   );
 };
+

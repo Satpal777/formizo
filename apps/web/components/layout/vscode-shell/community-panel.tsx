@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Globe, MoreHorizontal, X, ExternalLink, RefreshCw, Eye, MessageSquare, Compass } from "lucide-react";
 import { useGetListedForms } from "~/hooks/api/use-forms";
+import { Tooltip } from "~/components/ui/tooltip";
 
 export function CommunityPanel() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,14 +24,15 @@ export function CommunityPanel() {
           <Globe className="size-3.5 text-[#3794ff]" />
           Community Explore
         </span>
-        <button
-          onClick={() => void refetch()}
-          className="text-[#cccccc] hover:text-white transition cursor-pointer"
-          title="Refresh community forms"
-          disabled={isLoading || isFetching}
-        >
-          <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
-        </button>
+        <Tooltip content="Refresh community forms" side="bottom" sideOffset={6}>
+          <button
+            onClick={() => void refetch()}
+            className="text-[#cccccc] hover:text-white transition cursor-pointer"
+            disabled={isLoading || isFetching}
+          >
+            <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Search Input */}

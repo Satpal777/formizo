@@ -3,6 +3,7 @@ export type FormFile = {
   slug: string;
   name: string;
   status: "draft" | "published" | "archived";
+  visibility: "listed" | "unlisted";
   dirty: boolean;
   content: string;
   fields: FormField[];
@@ -57,4 +58,3 @@ export type FormField = {
 
 export type PublicDocumentId = "welcome.md" | "guide.md" | "pricing.md" | "stats.md";
 export type ActiveDocument = PublicDocumentId | string;
-

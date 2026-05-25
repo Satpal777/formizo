@@ -10,6 +10,8 @@ import {
 } from "react-resizable-panels";
 import { toast } from "sonner";
 
+import { Tooltip } from "~/components/ui/tooltip";
+
 import { ActivityBar } from "./vscode-shell/activity-bar";
 import { CommandPalette } from "./vscode-shell/command-palette";
 import { EditorArea } from "./vscode-shell/editor-area";
@@ -166,6 +168,7 @@ export function AppShell() {
           slug: form.slug,
           name: fileName,
           status: form.status,
+          visibility: form.visibility,
           dirty: false,
           accessMode: form.accessMode,
           allowAnonymousResponses: form.allowAnonymousResponses,
@@ -261,6 +264,7 @@ export function AppShell() {
       slug: createdForm.slug,
       name: fileName,
       status: "draft",
+      visibility: "unlisted",
       dirty: false,
       accessMode: "public",
       allowAnonymousResponses: true,
@@ -559,6 +563,7 @@ export function AppShell() {
         showProgressBar: targetForm.showProgressBar,
         shuffleFields: targetForm.shuffleFields,
         thankYouMessage: targetForm.thankYouMessage,
+        visibility: targetForm.visibility,
         status: "draft",
         title: targetForm.name.replace(/\.form$/, ""),
       });
@@ -619,6 +624,7 @@ export function AppShell() {
         showProgressBar: targetForm.showProgressBar,
         shuffleFields: targetForm.shuffleFields,
         thankYouMessage: targetForm.thankYouMessage,
+        visibility: targetForm.visibility,
       });
       publishedForm = await publishFormMutation.mutateAsync({
         id: targetForm.id,
@@ -671,6 +677,7 @@ export function AppShell() {
           ? {
               ...form,
               status: archivedForm.status,
+              visibility: "unlisted",
               dirty: false,
               lastUpdatedAt: archivedForm.updatedAt,
             }
@@ -719,12 +726,21 @@ export function AppShell() {
     setIsExplorerCollapsed(true);
   }
 
+  function handleSelectDocument(documentId: ActiveDocument) {
+    if (documentId === "stats.md" && !isAuthenticated) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setActiveDocument(documentId);
+  }
+
   return (
     <main className="grid h-dvh min-h-[620px] grid-rows-[36px_minmax(0,1fr)_22px] overflow-hidden bg-[#1e1e1e] text-[12px] text-[#cccccc]">
       <TitleBar
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         currentPlan={currentPlan}
         onSelectDocument={setActiveDocument}
+        isAuthenticated={isAuthenticated}
       />
       <div className="col-span-3 flex min-h-0 w-full min-w-0 overflow-hidden">
         <div className="w-12 shrink-0">
@@ -772,7 +788,7 @@ export function AppShell() {
                   isAuthenticated={isAuthenticated}
                   onCreateForm={handleCreateForm}
                   onRenameForm={handleRenameForm}
-                  onSelectDocument={setActiveDocument}
+                  onSelectDocument={handleSelectDocument}
                   onRequestAuth={() => setIsAuthModalOpen(true)}
                   currentPlan={currentPlan}
                   onLimitReached={() => setIsLimitModalOpen(true)}
@@ -780,18 +796,24 @@ export function AppShell() {
               )}
             </Panel>
             <Separator className="group relative w-1 shrink-0 bg-[#2b2b2b] transition hover:bg-[#0078d4]">
-              <button
-                aria-label={isExplorerCollapsed ? "Expand Explorer" : "Collapse Explorer"}
-                className="absolute left-1/2 top-3 z-10 grid size-5 -translate-x-1/2 place-items-center rounded-[3px] border border-[#3c3c3c] bg-[#181818] text-[#cccccc] opacity-0 shadow-lg transition hover:text-white group-hover:opacity-100"
-                onClick={toggleExplorerPanel}
-                type="button"
+              <Tooltip
+                content={isExplorerCollapsed ? "Expand Explorer" : "Collapse Explorer"}
+                side="right"
+                sideOffset={10}
               >
-                {isExplorerCollapsed ? (
-                  <ChevronRight className="size-3.5" />
-                ) : (
-                  <ChevronLeft className="size-3.5" />
-                )}
-              </button>
+                <button
+                  aria-label={isExplorerCollapsed ? "Expand Explorer" : "Collapse Explorer"}
+                  className="absolute left-1/2 top-3 z-10 grid size-5 -translate-x-1/2 place-items-center rounded-[3px] border border-[#3c3c3c] bg-[#181818] text-[#cccccc] opacity-0 shadow-lg transition hover:text-white group-hover:opacity-100"
+                  onClick={toggleExplorerPanel}
+                  type="button"
+                >
+                  {isExplorerCollapsed ? (
+                    <ChevronRight className="size-3.5" />
+                  ) : (
+                    <ChevronLeft className="size-3.5" />
+                  )}
+                </button>
+              </Tooltip>
             </Separator>
             <Panel className="h-full min-w-0" id="editor" minSize="560px">
               <EditorArea
@@ -803,7 +825,7 @@ export function AppShell() {
                 onArchiveForm={handleArchiveForm}
                 onPublishForm={handlePublish}
                 onSaveDraft={handleSaveDraft}
-                onSelectDocument={setActiveDocument}
+                onSelectDocument={handleSelectDocument}
                 onCommitRenameForm={handleRenameForm}
                 onRenameForm={applyFormRename}
                 onUpdateForm={handleUpdateForm}
@@ -820,6 +842,7 @@ export function AppShell() {
         currentPlan={currentPlan}
         formsCount={forms.length}
         onSelectDocument={setActiveDocument}
+        isAuthenticated={isAuthenticated}
       />
       <CommandPalette
         isAuthenticated={isAuthenticated}

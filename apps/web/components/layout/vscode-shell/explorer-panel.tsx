@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Tooltip } from "~/components/ui/tooltip";
 import {
   ChevronDown,
   ChevronRight,
@@ -12,6 +13,7 @@ import {
   Pencil,
   Sparkles,
   BarChart3,
+  Lock,
 } from "lucide-react";
 
 import { getResponseDocumentId } from "~/features/forms/lib/documents";
@@ -31,11 +33,7 @@ type ExplorerPanelProps = {
   onLimitReached?: () => void;
 };
 
-const projectItems = [
-  { label: "templates", icon: Folder, open: false },
-  { label: "workflows", icon: Folder, open: false },
-  { label: "themes", icon: Folder, open: false },
-];
+
 
 export function ExplorerPanel({
   activeDocument,
@@ -111,30 +109,31 @@ export function ExplorerPanel({
       <div className="group flex h-7 items-center gap-1 px-2 text-[12px] font-semibold uppercase text-white">
         <ChevronDown className="size-3.5" />
         <span className="min-w-0 flex-1 truncate">Formizo</span>
-        <button
-          aria-label="Create form"
-          className={`grid size-5 place-items-center rounded opacity-80 transition group-hover:opacity-100 ${
-            isAuthenticated
-              ? "text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
-              : "cursor-not-allowed text-[#6f6f6f]"
-          }`}
-          onClick={() => {
-            if (!isAuthenticated) {
-              onRequestAuth();
-              return;
-            }
+        <Tooltip content={isAuthenticated ? "New Form" : "Sign in to create forms"} side="top" sideOffset={6}>
+          <button
+            aria-label="Create form"
+            className={`grid size-5 place-items-center rounded opacity-80 transition group-hover:opacity-100 ${
+              isAuthenticated
+                ? "text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
+                : "cursor-not-allowed text-[#6f6f6f]"
+            }`}
+            onClick={() => {
+              if (!isAuthenticated) {
+                onRequestAuth();
+                return;
+              }
 
-            if (currentPlan === "free" && forms.length >= 10) {
-              onLimitReached?.();
-              return;
-            }
+              if (currentPlan === "free" && forms.length >= 10) {
+                onLimitReached?.();
+                return;
+              }
 
-            startCreating();
-          }}
-          title={isAuthenticated ? "New Form" : "Sign in to create forms"}
-        >
-          <FilePlus2 className="size-3.5" />
-        </button>
+              startCreating();
+            }}
+          >
+            <FilePlus2 className="size-3.5" />
+          </button>
+        </Tooltip>
       </div>
 
       <div className="flex-1 overflow-auto pb-3 pt-1 text-[13px]">
@@ -157,12 +156,26 @@ export function ExplorerPanel({
             label="pricing.md"
             onClick={() => onSelectDocument("pricing.md")}
           />
-          <TreeFile
-            active={activeDocument === "stats.md"}
-            icon={BarChart3}
-            label="stats.md"
-            onClick={() => onSelectDocument("stats.md")}
-          />
+          {isAuthenticated ? (
+            <TreeFile
+              active={activeDocument === "stats.md"}
+              icon={BarChart3}
+              label="stats.md"
+              onClick={() => onSelectDocument("stats.md")}
+            />
+          ) : (
+            <Tooltip content="Sign in to view platform stats" side="right" sideOffset={8}>
+              <button
+                className="flex h-[24px] w-full items-center gap-1.5 px-6 text-left text-[#5a5a5a] cursor-not-allowed"
+                disabled
+                aria-label="stats.md (requires sign in)"
+              >
+                <Lock className="size-3.5 shrink-0 text-[#4a4a4a]" />
+                <span className="min-w-0 truncate line-through opacity-50">stats.md</span>
+              </button>
+            </Tooltip>
+          )}
+
         </TreeFolder>
 
         <TreeFolder
@@ -212,18 +225,19 @@ export function ExplorerPanel({
                 </button>
               )}
               {renamingFormId !== form.id ? (
-                <button
-                  aria-label={`Rename ${form.name}`}
-                  className="absolute right-8 top-0 hidden size-6 place-items-center text-[#cccccc] hover:bg-[#3a3d3e] hover:text-white group-hover/form:grid"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    startRenaming(form);
-                  }}
-                  title="Rename"
-                  type="button"
-                >
-                  <Pencil className="size-3" />
-                </button>
+                <Tooltip content="Rename Form" side="top" sideOffset={4}>
+                  <button
+                    aria-label={`Rename ${form.name}`}
+                    className="absolute right-8 top-0 hidden size-6 place-items-center text-[#cccccc] hover:bg-[#3a3d3e] hover:text-white group-hover/form:grid"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      startRenaming(form);
+                    }}
+                    type="button"
+                  >
+                    <Pencil className="size-3" />
+                  </button>
+                </Tooltip>
               ) : null}
             </div>
           ))}
@@ -285,24 +299,10 @@ export function ExplorerPanel({
           )}
         </TreeFolder>
 
-        {projectItems.map((item) => (
-          <TreeFolder key={item.label} label={item.label} open={item.open} />
-        ))}
 
-        <TreeFile icon={FileJson2} label="formizo.config.json" />
       </div>
 
-      <div className="mt-auto border-t border-[#2b2b2b]">
-        {["Outline", "Timeline"].map((label) => (
-          <button
-            key={label}
-            className="flex h-[23px] w-full items-center gap-1 border-b border-[#2b2b2b] px-2 text-[12px] font-semibold uppercase text-white"
-          >
-            <ChevronRight className="size-3.5" />
-            {label}
-          </button>
-        ))}
-      </div>
+
     </aside>
   );
 }

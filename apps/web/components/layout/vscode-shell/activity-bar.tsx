@@ -1,4 +1,5 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { Tooltip } from "~/components/ui/tooltip";
 import {
   Blocks,
   Bug,
@@ -18,7 +19,7 @@ import {
 
 const topItems = [
   { label: "Explorer", icon: Files, active: true },
-  { label: "Search", icon: Search },
+  { label: "Search", icon: Search, authRequired: true },
   { label: "Community", icon: Globe },
   { label: "Source Control", icon: GitFork },
   { label: "Run and Debug", icon: Bug },
@@ -50,34 +51,48 @@ export function ActivityBar({
       <div className="mt-1.5 flex w-full flex-1 flex-col items-center gap-1.5">
         {topItems.map((item) => {
           const isActive = item.label === activeTab;
+          const isLocked = item.authRequired && !isAuthenticated;
           return (
-            <button
+            <Tooltip
               key={item.label}
-              aria-label={item.label}
-              onClick={() => onTabChange?.(item.label)}
-              className={`relative grid size-[37px] place-items-center transition hover:text-white cursor-pointer ${
-                isActive ? "text-white" : "text-[#9d9d9d]"
-              }`}
+              content={isLocked ? `Sign in to use ${item.label}` : item.label}
+              side="right"
+              sideOffset={12}
             >
-              {isActive ? (
-                <span className="absolute left-0 top-0 h-full w-0.5 bg-[#0078d4]" />
-              ) : null}
-              <item.icon className="size-5" strokeWidth={1.7} />
-            </button>
+              <button
+                aria-label={item.label}
+                disabled={isLocked}
+                onClick={() => !isLocked && onTabChange?.(item.label)}
+                className={`relative grid size-[37px] place-items-center transition cursor-pointer ${
+                  isLocked
+                    ? "opacity-35 cursor-not-allowed text-[#6f6f6f]"
+                    : isActive
+                      ? "text-white"
+                      : "text-[#9d9d9d] hover:text-white"
+                }`}
+              >
+                {isActive && !isLocked ? (
+                  <span className="absolute left-0 top-0 h-full w-0.5 bg-[#0078d4]" />
+                ) : null}
+                <item.icon className="size-5" strokeWidth={1.7} />
+              </button>
+            </Tooltip>
           );
         })}
       </div>
 
       <div className="mb-2.5 flex flex-col items-center gap-1.5">
         <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild>
-            <button
-              aria-label="Accounts"
-              className="grid size-8 place-items-center text-[#9d9d9d] hover:text-white transition cursor-pointer outline-none"
-            >
-              <UserCircle className="size-6" strokeWidth={1.6} />
-            </button>
-          </DropdownMenu.Trigger>
+          <Tooltip content="Accounts" side="right" sideOffset={12}>
+            <DropdownMenu.Trigger asChild>
+              <button
+                aria-label="Accounts"
+                className="grid size-8 place-items-center text-[#9d9d9d] hover:text-white transition cursor-pointer outline-none"
+              >
+                <UserCircle className="size-6" strokeWidth={1.6} />
+              </button>
+            </DropdownMenu.Trigger>
+          </Tooltip>
           <DropdownMenu.Portal>
             <DropdownMenu.Content
               align="start"
@@ -151,9 +166,11 @@ export function ActivityBar({
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
-        <button aria-label="Settings" className="grid size-8 place-items-center text-[#9d9d9d]">
-          <Settings className="size-[22px]" strokeWidth={1.6} />
-        </button>
+        <Tooltip content="Settings" side="right" sideOffset={12}>
+          <button aria-label="Settings" className="grid size-8 place-items-center text-[#9d9d9d] cursor-pointer hover:text-white transition">
+            <Settings className="size-[22px]" strokeWidth={1.6} />
+          </button>
+        </Tooltip>
       </div>
     </nav>
   );

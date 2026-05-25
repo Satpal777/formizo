@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Braces, FileCode2, LockKeyhole, Mail } from "lucide-react";
+import { LockKeyhole, Mail } from "lucide-react";
 
 type CommandPaletteProps = {
   isAuthenticated: boolean;
@@ -16,31 +16,15 @@ type CommandPaletteProps = {
 
 type PaletteMode = "commands" | "credentials";
 
-const fileResults = [
-  { name: "settings.json", path: ".vscode", icon: Braces, color: "text-[#ffb454]" },
-  { name: "page.tsx", path: "apps\\web\\app", icon: FileCode2, color: "text-[#3794ff]" },
-  { name: "layout.tsx", path: "apps\\web\\app", icon: FileCode2, color: "text-[#3794ff]" },
-  { name: "globals.css", path: "apps\\web\\app", icon: FileCode2, color: "text-[#c586c0]" },
-  { name: "env.ts", path: "packages\\services", icon: FileCode2, color: "text-[#3794ff]" },
-  { name: "create-client.ts", path: "apps\\web\\trpc", icon: FileCode2, color: "text-[#3794ff]" },
-];
 
-type PaletteItem =
-  | {
-      kind: "command";
-      label: string;
-      meta?: string;
-      onSelect?: () => void;
-      shortcut?: string[];
-    }
-  | {
-      kind: "file";
-      color: string;
-      icon: React.ComponentType<{ className?: string }>;
-      name: string;
-      path: string;
-      recentlyOpened?: boolean;
-    };
+
+type PaletteItem = {
+  kind: "command";
+  label: string;
+  meta?: string;
+  onSelect?: () => void;
+  shortcut?: string[];
+};
 
 export function CommandPalette({
   isAuthenticated,
@@ -81,29 +65,25 @@ export function CommandPalette({
 
     return [
       ...commandItems,
-      { kind: "command", label: "Create New Form", meta: "form", onSelect: onCreateForm },
+      ...(isAuthenticated
+        ? [
+            { kind: "command" as const, label: "Create New Form", meta: "form", onSelect: onCreateForm },
+          ]
+        : []),
       { kind: "command", label: "Open welcome.md", meta: "public", onSelect: onOpenWelcome },
       { kind: "command", label: "Open guide.md", meta: "public", onSelect: onOpenGuide },
-      { kind: "command", label: "Open stats.md", meta: "public", onSelect: onOpenStats },
+      ...(isAuthenticated
+        ? [
+            { kind: "command" as const, label: "Open stats.md", meta: "public", onSelect: onOpenStats },
+          ]
+        : []),
       { kind: "command", label: "Show Pricing & Plans", meta: "public", onSelect: () => { window.location.href = "/pricing"; } },
-      { kind: "command", label: "Save Draft", meta: "form", onSelect: onSaveDraft },
-      { kind: "command", label: "Publish Form", meta: "form", onSelect: onPublishForm },
-      { kind: "command", label: "Go to File", shortcut: ["Ctrl", "P"] },
-      { kind: "command", label: "Show and Run Commands", meta: ">", shortcut: ["Ctrl", "Shift", "P"] },
-      { kind: "command", label: "Search for Text", meta: "%" },
-      { kind: "command", label: "Open Quick Chat", shortcut: ["Ctrl", "Shift", "Alt", "L"] },
-      { kind: "command", label: "Go to Symbol in Editor", meta: "@", shortcut: ["Ctrl", "Shift", "O"] },
-      { kind: "command", label: "Start Debugging", meta: "debug" },
-      { kind: "command", label: "Run Task", meta: "task" },
-      { kind: "command", label: "More", meta: "?" },
-      ...fileResults.map<PaletteItem>((file, index) => ({
-        kind: "file",
-        color: file.color,
-        icon: file.icon,
-        name: file.name,
-        path: file.path,
-        recentlyOpened: index === 0,
-      })),
+      ...(isAuthenticated
+        ? [
+            { kind: "command" as const, label: "Save Draft", meta: "form", onSelect: onSaveDraft },
+            { kind: "command" as const, label: "Publish Form", meta: "form", onSelect: onPublishForm },
+          ]
+        : []),
     ];
   }, [isAuthenticated, onAuthenticate, onCreateForm, onOpenGuide, onOpenWelcome, onOpenStats, onPublishForm, onSaveDraft]);
 
@@ -203,30 +183,17 @@ export function CommandPalette({
 
         {mode === "commands" ? (
           <div className="pb-1 pt-2 text-[15px]">
-            {paletteItems.map((item, index) =>
-              item.kind === "command" ? (
-                <CommandRow
-                  active={index === activeIndex}
-                  key={`${item.kind}-${item.label}`}
-                  label={item.label}
-                  meta={item.meta}
-                  onClick={item.onSelect}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  shortcut={item.shortcut}
-                />
-              ) : (
-                <FileRow
-                  active={index === activeIndex}
-                  color={item.color}
-                  icon={item.icon}
-                  key={`${item.name}-${item.path}`}
-                  name={item.name}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  path={item.path}
-                  recentlyOpened={item.recentlyOpened}
-                />
-              ),
-            )}
+            {paletteItems.map((item, index) => (
+              <CommandRow
+                active={index === activeIndex}
+                key={`${item.kind}-${item.label}`}
+                label={item.label}
+                meta={item.meta}
+                onClick={item.onSelect}
+                onMouseEnter={() => setActiveIndex(index)}
+                shortcut={item.shortcut}
+              />
+            ))}
           </div>
         ) : (
           <form className="space-y-3 px-2 pb-3 pt-3" onSubmit={handleCredentialsSubmit}>
@@ -323,38 +290,5 @@ function Shortcut({ keys }: { keys: string[] }) {
         </span>
       ))}
     </span>
-  );
-}
-
-function FileRow({
-  active,
-  color,
-  icon: Icon,
-  name,
-  onMouseEnter,
-  path,
-  recentlyOpened,
-}: {
-  active?: boolean;
-  color: string;
-  icon: React.ComponentType<{ className?: string }>;
-  name: string;
-  onMouseEnter?: () => void;
-  path: string;
-  recentlyOpened?: boolean;
-}) {
-  return (
-    <button
-      className={`flex h-[28px] w-full items-center gap-2 rounded-[3px] px-4 text-left ${
-        active ? "bg-[#04395e] text-white" : "text-[#e6e6e6] hover:bg-[#2a2d2e]"
-      }`}
-      onMouseEnter={onMouseEnter}
-      type="button"
-    >
-      <Icon className={`size-4 shrink-0 ${color}`} />
-      <span className="truncate">{name}</span>
-      <span className="min-w-0 flex-1 truncate text-[#9d9d9d]">{path}</span>
-      {recentlyOpened ? <span className="text-[13px] text-[#c7c7c7]">recently opened</span> : null}
-    </button>
   );
 }

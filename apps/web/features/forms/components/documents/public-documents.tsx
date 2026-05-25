@@ -200,7 +200,7 @@ export function PricingDocument() {
             ["Monthly Submissions", "100 / mo", "Unlimited"],
             ["Max File Upload Size", "5 MB", "1 GB"],
             ["Custom Branding", "Formizo Badge", "White-labeled"],
-            ["Webhooks & API", "No", "Unlimited endpoints"],
+            ["APIs", "No", "Unlimited endpoints"],
             ["Custom Domains", "No", "Yes (forms.domain.com)"],
             ["Password Protection", "No", "Yes"],
             ["Support", "Discord", "24/7 Priority Support"],

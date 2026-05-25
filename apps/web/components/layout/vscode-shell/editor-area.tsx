@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Tooltip } from "~/components/ui/tooltip";
 import {
   ClipboardList,
   Columns2,
@@ -197,22 +198,26 @@ function EditorToolbar({
       <div className="flex items-center gap-2">
         {activeForm ? (
           <>
-            <button
-              className="flex h-7 items-center gap-1.5 rounded-[3px] px-2 text-[12px] hover:bg-[#2a2d2e]"
-              onClick={() => onSaveDraft(activeForm.id)}
-              type="button"
-            >
-              <Save className="size-3.5" />
-              Save Draft
-            </button>
-            <button
-              className="flex h-7 items-center gap-1.5 rounded-[3px] bg-[#0e639c] px-2.5 text-[12px] text-white hover:bg-[#1177bb]"
-              onClick={() => onPublishForm(activeForm.id)}
-              type="button"
-            >
-              <Send className="size-3.5" />
-              Publish
-            </button>
+            <Tooltip content="Save form changes as draft" side="bottom" sideOffset={6}>
+              <button
+                className="flex h-7 items-center gap-1.5 rounded-[3px] px-2 text-[12px] hover:bg-[#2a2d2e] cursor-pointer"
+                onClick={() => onSaveDraft(activeForm.id)}
+                type="button"
+              >
+                <Save className="size-3.5" />
+                Save Draft
+              </button>
+            </Tooltip>
+            <Tooltip content="Publish form changes live" side="bottom" sideOffset={6}>
+              <button
+                className="flex h-7 items-center gap-1.5 rounded-[3px] bg-[#0e639c] px-2.5 text-[12px] text-white hover:bg-[#1177bb] cursor-pointer"
+                onClick={() => onPublishForm(activeForm.id)}
+                type="button"
+              >
+                <Send className="size-3.5" />
+                Publish
+              </button>
+            </Tooltip>
           </>
         ) : null}
         <Columns2 className="size-4 text-[#c7dcff]" />
