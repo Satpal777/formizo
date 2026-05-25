@@ -354,6 +354,7 @@ export class FormsService {
         slug: forms.slug,
         accessMode: forms.accessMode,
         allowAnonymousResponses: forms.allowAnonymousResponses,
+        allowMultipleResponses: forms.allowMultipleResponses,
         collectEmail: forms.collectEmail,
         showProgressBar: forms.showProgressBar,
         shuffleFields: forms.shuffleFields,
@@ -374,6 +375,18 @@ export class FormsService {
 
     if (requiresAuth && !input.viewerUserId) {
       return { form: null, unavailableReason: "auth_required" };
+    }
+
+    if (!form.allowMultipleResponses && input.viewerUserId) {
+      const [existingResponse] = await db
+        .select({ id: formResponses.id })
+        .from(formResponses)
+        .where(and(eq(formResponses.formId, form.id), eq(formResponses.respondentUserId, input.viewerUserId)))
+        .limit(1);
+
+      if (existingResponse) {
+        return { form: null, unavailableReason: "already_submitted" };
+      }
     }
 
     const requiresPassword = Boolean(form.passwordHash && form.passwordSalt);

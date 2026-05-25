@@ -296,7 +296,7 @@ export const publishedForm = z.object({
 export const getPublishedFormBySlugOutput = z.object({
   form: publishedForm.nullable().describe("The published form, if found"),
   unavailableReason: z
-    .enum(["not_found", "auth_required"])
+    .enum(["not_found", "auth_required", "already_submitted"])
     .or(z.literal("password_required"))
     .optional()
     .describe("Why the form is unavailable"),
