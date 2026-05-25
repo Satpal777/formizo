@@ -1,3 +1,5 @@
+import type { FormThemeId } from "./lib/themes";
+
 export type FormFile = {
   id: string;
   slug: string;
@@ -24,6 +26,8 @@ export type FormFile = {
   showProgressBar: boolean;
   shuffleFields: boolean;
   thankYouMessage?: string;
+  settings?: Record<string, unknown>;
+  themeId: FormThemeId;
 };
 
 export type FormFieldType =

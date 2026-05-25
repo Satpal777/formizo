@@ -14,7 +14,7 @@ import { env } from "./env";
 import { createRateLimit } from "./middleware/rate-limit";
 
 export const app = express();
-const isProduction = env.NODE_ENV === "prod";
+const isProduction = env.NODE_ENV === "prod" || env.NODE_ENV === "production";
 const openApiDocument = generateOpenApiDocument(serverRouter, {
   title: "Formizo API",
   version: "1.0.0",

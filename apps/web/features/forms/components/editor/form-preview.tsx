@@ -3,6 +3,7 @@ import { useState, useEffect, type DragEvent } from "react";
 import { toast } from "sonner";
 
 import type { FormField, FormFile } from "../../types";
+import { getFormTheme } from "../../lib/themes";
 import { useGetFormSubmissions } from "~/hooks/api/use-forms";
 
 type SubmissionItem = NonNullable<ReturnType<typeof useGetFormSubmissions>["data"]>["submissions"][number];
@@ -37,6 +38,7 @@ export function FormPreview({
   submissions: SubmissionItem[];
 }) {
   const publicUrl = getPublicFormUrl(form);
+  const theme = getFormTheme(form.themeId);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   // Smooth scroll active field into view
@@ -67,7 +69,7 @@ export function FormPreview({
   }
 
   return (
-    <div className="h-full min-w-0 overflow-auto bg-[#181818]">
+    <div className="h-full min-w-0 overflow-auto" style={{ backgroundColor: theme.page }}>
       <div className="flex h-8 items-center justify-between border-b border-[#2b2b2b] px-4 text-[12px] text-[#9d9d9d]">
         <span className="flex items-center gap-1.5">
           <Eye className="size-3.5" />
@@ -104,11 +106,13 @@ export function FormPreview({
         </div>
       ) : null}
       <div className="mx-auto max-w-[560px] px-8 py-8">
-        <div className="mb-6 text-[12px] uppercase tracking-wide text-[#858585]">
+        <div className="mb-6 text-[12px] uppercase tracking-wide" style={{ color: theme.muted }}>
           {form.accessMode} / results {form.resultVisibility.replace("_", " ")}
         </div>
-        <h1 className="text-[26px] font-semibold text-white">{form.name.replace(/\.form$/, "")}</h1>
-        <p className="mt-2 text-[13px] leading-6 text-[#9d9d9d]">
+        <h1 className="text-[26px] font-semibold" style={{ color: theme.text }}>
+          {form.name.replace(/\.form$/, "")}
+        </h1>
+        <p className="mt-2 text-[13px] leading-6" style={{ color: theme.muted }}>
           This is the respondent-facing preview generated from the form file.
         </p>
         <div className="mt-7 space-y-4">
@@ -134,12 +138,17 @@ export function FormPreview({
                   setDraggedIndex(null);
                 }}
                 onClick={() => onSelectField?.(field.id)}
+                theme={theme}
               />
             ))
           )}
         </div>
         {form.fields.length > 0 ? (
-          <button className="mt-7 h-10 rounded-[4px] bg-[#0e639c] px-5 text-[13px] font-medium text-white" type="button">
+          <button
+            className="mt-7 h-10 rounded-[4px] px-5 text-[13px] font-medium"
+            style={{ backgroundColor: theme.accent, color: theme.accentText }}
+            type="button"
+          >
             Submit preview
           </button>
         ) : null}
@@ -189,6 +198,7 @@ function PreviewField({
   onDragStart,
   onDrop,
   onClick,
+  theme,
 }: {
   active: boolean;
   dragged: boolean;
@@ -199,24 +209,26 @@ function PreviewField({
   onDragStart: () => void;
   onDrop: () => void;
   onClick?: () => void;
+  theme: ReturnType<typeof getFormTheme>;
 }) {
   if (field.type === "statement") {
     return (
       <div
         id={`preview-field-${field.id}`}
         onClick={onClick}
-        className={`rounded-[6px] border bg-[#252526] p-4 cursor-pointer transition-all duration-200 ${
+        className={`cursor-pointer rounded-[6px] border p-4 transition-all duration-200 ${
           active ? "border-[#0078d4] ring-1 ring-[#0078d4]" : "border-[#2b2b2b] hover:border-[#3c3c3c]"
         } ${dragged ? "opacity-50" : ""}`}
+        style={{ backgroundColor: theme.surface, borderColor: active ? theme.accent : theme.border }}
         draggable
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
         onDragStart={onDragStart}
         onDrop={onDrop}
       >
-        <div className="flex items-center gap-2 text-[14px] font-semibold text-white">
-          <GripVertical className="size-4 cursor-grab text-[#858585]" />
-          <CheckCircle2 className="size-4 text-[#89d185]" />
+        <div className="flex items-center gap-2 text-[14px] font-semibold" style={{ color: theme.text }}>
+          <GripVertical className="size-4 cursor-grab" style={{ color: theme.muted }} />
+          <CheckCircle2 className="size-4" style={{ color: theme.accent }} />
           {field.title}
         </div>
       </div>
@@ -227,24 +239,29 @@ function PreviewField({
     <div
       id={`preview-field-${field.id}`}
       onClick={onClick}
-      className={`block rounded-[6px] border bg-[#252526] p-4 cursor-pointer transition-all duration-200 ${
+      className={`block cursor-pointer rounded-[6px] border p-4 transition-all duration-200 ${
         active ? "border-[#0078d4] ring-1 ring-[#0078d4]" : "border-[#2b2b2b] hover:border-[#3c3c3c]"
       } ${dragged ? "opacity-50" : ""}`}
+      style={{ backgroundColor: theme.surface, borderColor: active ? theme.accent : theme.border }}
       draggable
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
       onDragStart={onDragStart}
       onDrop={onDrop}
     >
-      <span className="mb-3 flex items-center gap-2 text-[14px] font-medium text-white">
-        <GripVertical className="size-4 cursor-grab text-[#858585]" />
-        <ListChecks className="size-4 text-[#3794ff]" />
+      <span className="mb-3 flex items-center gap-2 text-[14px] font-medium" style={{ color: theme.text }}>
+        <GripVertical className="size-4 cursor-grab" style={{ color: theme.muted }} />
+        <ListChecks className="size-4" style={{ color: theme.accent }} />
         {index + 1}. {field.title}
       </span>
       {field.options ? (
         <div className="space-y-2">
           {field.options.map((option) => (
-            <span className="flex h-9 items-center rounded-[4px] border border-[#3c3c3c] px-3 text-[13px] text-[#cfcfcf]" key={option}>
+            <span
+              className="flex h-9 items-center rounded-[4px] border px-3 text-[13px]"
+              key={option}
+              style={{ backgroundColor: theme.input, borderColor: theme.border, color: theme.text }}
+            >
               {option}
             </span>
           ))}
@@ -254,6 +271,7 @@ function PreviewField({
           className="h-9 w-full rounded-[4px] border border-[#3c3c3c] bg-[#1e1e1e] px-3 text-[13px] text-white outline-none pointer-events-none"
           placeholder={field.type.replace("_", " ")}
           readOnly
+          style={{ backgroundColor: theme.input, borderColor: theme.border, color: theme.text }}
         />
       )}
     </div>

@@ -27,6 +27,7 @@ import {
   buildFormContent,
   fieldBlockPattern,
 } from "~/features/forms/lib/field-blocks";
+import { DEFAULT_FORM_THEME_ID } from "~/features/forms/lib/themes";
 import type { ActiveDocument, FormField, FormFile } from "~/features/forms/types";
 import { useMe } from "~/hooks/api/use-auth";
 import {
@@ -169,6 +170,8 @@ export function AppShell() {
           name: fileName,
           status: form.status,
           visibility: form.visibility,
+          settings: form.settings ?? undefined,
+          themeId: form.themeId,
           dirty: false,
           accessMode: form.accessMode,
           allowAnonymousResponses: form.allowAnonymousResponses,
@@ -265,6 +268,8 @@ export function AppShell() {
       name: fileName,
       status: "draft",
       visibility: "unlisted",
+      settings: { themeId: DEFAULT_FORM_THEME_ID },
+      themeId: DEFAULT_FORM_THEME_ID,
       dirty: false,
       accessMode: "public",
       allowAnonymousResponses: true,
@@ -564,6 +569,7 @@ export function AppShell() {
         shuffleFields: targetForm.shuffleFields,
         thankYouMessage: targetForm.thankYouMessage,
         visibility: targetForm.visibility,
+        settings: { ...targetForm.settings, themeId: targetForm.themeId },
         status: "draft",
         title: targetForm.name.replace(/\.form$/, ""),
       });
@@ -625,6 +631,7 @@ export function AppShell() {
         shuffleFields: targetForm.shuffleFields,
         thankYouMessage: targetForm.thankYouMessage,
         visibility: targetForm.visibility,
+        settings: { ...targetForm.settings, themeId: targetForm.themeId },
       });
       publishedForm = await publishFormMutation.mutateAsync({
         id: targetForm.id,

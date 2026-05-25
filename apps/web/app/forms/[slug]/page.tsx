@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronDown, CircleAlert, Loader2, Send, Mail } from "luc
 import { toast } from "sonner";
 
 import { AuthModal } from "~/features/auth/components/auth-modal";
+import { getFormTheme } from "~/features/forms/lib/themes";
 import { useMe } from "~/hooks/api/use-auth";
 import {
   useGetPublishedFormBySlug,
@@ -42,6 +43,7 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
   const [submittedResponseId, setSubmittedResponseId] = useState<string | null>(null);
   const [thankYouMessage, setThankYouMessage] = useState<string | null>(null);
   const form = formQuery.data?.form;
+  const theme = getFormTheme(form?.themeId);
   const usesAuthenticatedCollectedEmail = form?.accessMode === "authenticated" && form.collectEmail;
   const authenticatedRespondentEmail = usesAuthenticatedCollectedEmail
     ? meQuery.data?.user.email
@@ -180,13 +182,19 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
     const userEmail = meQuery.data?.user?.email;
 
     return (
-      <main className="grid min-h-dvh place-items-center bg-[#181818] px-6 text-[#d4d4d4]">
-        <section className="w-full max-w-[560px] rounded-[8px] border border-[#2b2b2b] bg-[#1e1e1e] p-8 text-center">
-          <CheckCircle2 className="mx-auto size-9 text-[#89d185]" />
-          <h1 className="mt-4 text-[24px] font-semibold text-white">
+      <main
+        className="grid min-h-dvh place-items-center px-6"
+        style={{ backgroundColor: theme.page, color: theme.text }}
+      >
+        <section
+          className="w-full max-w-[560px] rounded-[8px] border p-8 text-center"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <CheckCircle2 className="mx-auto size-9" style={{ color: theme.accent }} />
+          <h1 className="mt-4 text-[24px] font-semibold" style={{ color: theme.text }}>
             {thankYouMessage || form.thankYouMessage || "Thanks for your response"}
           </h1>
-          <p className="mt-2 text-[13px] leading-6 text-[#9d9d9d]">
+          <p className="mt-2 text-[13px] leading-6" style={{ color: theme.muted }}>
             Your submission has been completed successfully.
           </p>
 
@@ -224,11 +232,14 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
   }
 
   return (
-    <main className="min-h-dvh bg-[#181818] text-[#d4d4d4]">
-      <div className="border-b border-[#2b2b2b] bg-[#1e1e1e]">
+    <main className="min-h-dvh" style={{ backgroundColor: theme.page, color: theme.text }}>
+      <div className="border-b" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
         <div className="mx-auto flex h-12 max-w-[860px] items-center justify-between px-5">
-          <span className="font-mono text-[12px] text-[#858585]">formizo.public</span>
-          <span className="rounded-[3px] bg-[#263238] px-2 py-1 text-[11px] uppercase text-[#89d185]">
+          <span className="font-mono text-[12px]" style={{ color: theme.muted }}>formizo.public</span>
+          <span
+            className="rounded-[3px] px-2 py-1 text-[11px] uppercase"
+            style={{ backgroundColor: theme.elevated, color: theme.accent }}
+          >
             Published
           </span>
         </div>
@@ -236,20 +247,20 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
 
       <section className="mx-auto w-full max-w-[760px] px-5 py-10">
         <div className="mb-8">
-          <div className="mb-3 text-[12px] uppercase tracking-wide text-[#858585]">
+          <div className="mb-3 text-[12px] uppercase tracking-wide" style={{ color: theme.muted }}>
             {form.accessMode} form
           </div>
-          <h1 className="text-[34px] font-semibold leading-tight text-white">{form.title}</h1>
+          <h1 className="text-[34px] font-semibold leading-tight" style={{ color: theme.text }}>{form.title}</h1>
           {form.description ? (
-            <p className="mt-3 max-w-[640px] text-[14px] leading-7 text-[#b7b7b7]">
+            <p className="mt-3 max-w-[640px] text-[14px] leading-7" style={{ color: theme.muted }}>
               {form.description}
             </p>
           ) : null}
         </div>
 
         {form.showProgressBar ? (
-          <div className="mb-7 h-1.5 overflow-hidden rounded-full bg-[#2b2b2b]">
-            <div className="h-full rounded-full bg-[#3794ff]" style={{ width: `${progress}%` }} />
+          <div className="mb-7 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: theme.border }}>
+            <div className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: theme.accent }} />
           </div>
         ) : null}
 
@@ -303,7 +314,7 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
             }}
           >
             {form.collectEmail ? (
-              <FieldFrame index={0} title="Email address" required>
+              <FieldFrame index={0} theme={theme} title="Email address" required>
                 <input
                   className="h-11 w-full rounded-[5px] border border-[#3c3c3c] bg-[#181818] px-3 text-[14px] text-white outline-none focus:border-[#3794ff] disabled:cursor-not-allowed disabled:text-[#858585]"
                   disabled={usesAuthenticatedCollectedEmail}
@@ -312,6 +323,7 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
                   readOnly={usesAuthenticatedCollectedEmail}
                   required
                   type="email"
+                  style={{ backgroundColor: theme.input, borderColor: theme.border, color: theme.text }}
                   {...(usesAuthenticatedCollectedEmail
                     ? { value: authenticatedRespondentEmail ?? "" }
                     : {})}
@@ -323,11 +335,13 @@ export default function PublicFormPage({ params }: PublicFormPageProps) {
                 field={field}
                 index={form.collectEmail ? index + 1 : index}
                 key={field.id}
+                theme={theme}
               />
             ))}
             <button
-              className="mt-7 flex h-11 items-center gap-2 rounded-[5px] bg-[#0e639c] px-5 text-[14px] font-medium text-white hover:bg-[#1177bb] disabled:cursor-wait disabled:opacity-70"
+              className="mt-7 flex h-11 items-center gap-2 rounded-[5px] px-5 text-[14px] font-medium disabled:cursor-wait disabled:opacity-70"
               disabled={submitFormMutation.isPending || (usesAuthenticatedCollectedEmail && !authenticatedRespondentEmail)}
+              style={{ backgroundColor: theme.accent, color: theme.accentText }}
               type="submit"
             >
               {submitFormMutation.isPending ? (
@@ -348,16 +362,21 @@ function FieldFrame({
   children,
   index,
   required,
+  theme,
   title,
 }: {
   children: React.ReactNode;
   index: number;
   required?: boolean;
+  theme: ReturnType<typeof getFormTheme>;
   title: string;
 }) {
   return (
-    <label className="block rounded-[8px] border border-[#2b2b2b] bg-[#1e1e1e] p-5">
-      <span className="mb-4 block text-[15px] font-medium text-white">
+    <label
+      className="block rounded-[8px] border p-5"
+      style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+    >
+      <span className="mb-4 block text-[15px] font-medium" style={{ color: theme.text }}>
         {index + 1}. {title}
         {required ? <span className="ml-1 text-[#f48771]">*</span> : null}
       </span>
@@ -369,28 +388,33 @@ function FieldFrame({
 function PublicField({
   field,
   index,
+  theme,
 }: {
   field: PublishedField;
   index: number;
+  theme: ReturnType<typeof getFormTheme>;
 }) {
   const required = field.validation?.required === true;
   const name = `field-${field.id}`;
 
   if (field.type === "statement") {
     return (
-      <div className="rounded-[8px] border border-[#2b2b2b] bg-[#1e1e1e] p-5 text-[14px] leading-7 text-[#d4d4d4]">
-        <div className="font-medium text-white">{field.title}</div>
-        {field.description ? <p className="mt-2 text-[#9d9d9d]">{field.description}</p> : null}
+      <div
+        className="rounded-[8px] border p-5 text-[14px] leading-7"
+        style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+      >
+        <div className="font-medium">{field.title}</div>
+        {field.description ? <p className="mt-2" style={{ color: theme.muted }}>{field.description}</p> : null}
       </div>
     );
   }
 
   return (
-    <FieldFrame index={index} required={required} title={field.title}>
+    <FieldFrame index={index} required={required} theme={theme} title={field.title}>
       {field.description ? (
-        <p className="-mt-2 mb-4 text-[13px] leading-6 text-[#9d9d9d]">{field.description}</p>
+        <p className="-mt-2 mb-4 text-[13px] leading-6" style={{ color: theme.muted }}>{field.description}</p>
       ) : null}
-      <FieldControl field={field} name={name} required={required} />
+      <FieldControl field={field} name={name} required={required} theme={theme} />
     </FieldFrame>
   );
 }
@@ -399,10 +423,12 @@ function FieldControl({
   field,
   name,
   required,
+  theme,
 }: {
   field: PublishedField;
   name: string;
   required: boolean;
+  theme: ReturnType<typeof getFormTheme>;
 }) {
   const baseInput =
     "h-11 w-full rounded-[5px] border border-[#3c3c3c] bg-[#181818] px-3 text-[14px] text-white outline-none focus:border-[#3794ff]";
@@ -414,6 +440,7 @@ function FieldControl({
         name={name}
         placeholder={field.placeholder ?? "Type your answer"}
         required={required}
+        style={{ backgroundColor: theme.input, borderColor: theme.border, color: theme.text }}
       />
     );
   }
@@ -425,6 +452,7 @@ function FieldControl({
           <label
             className="flex min-h-10 items-center gap-3 rounded-[5px] border border-[#3c3c3c] bg-[#181818] px-3 text-[14px] text-[#d4d4d4]"
             key={option.id}
+            style={{ backgroundColor: theme.input, borderColor: theme.border, color: theme.text }}
           >
             <input
               className="size-4"
@@ -443,7 +471,12 @@ function FieldControl({
   if (field.type === "dropdown") {
     return (
       <div className="relative">
-        <select className={`${baseInput} appearance-none`} name={name} required={required}>
+        <select
+          className={`${baseInput} appearance-none`}
+          name={name}
+          required={required}
+          style={{ backgroundColor: theme.input, borderColor: theme.border, color: theme.text }}
+        >
           <option value="">Select an option</option>
           {field.options.map((option) => (
             <option key={option.id} value={option.value}>
@@ -463,6 +496,7 @@ function FieldControl({
           <label
             className="flex h-11 items-center gap-3 rounded-[5px] border border-[#3c3c3c] bg-[#181818] px-3 text-[14px] text-[#d4d4d4]"
             key={option}
+            style={{ backgroundColor: theme.input, borderColor: theme.border, color: theme.text }}
           >
             <input className="size-4" name={name} required={required} type="radio" value={option} />
             {option}
@@ -490,6 +524,7 @@ function FieldControl({
       name={name}
       placeholder={field.placeholder ?? "Type your answer"}
       required={required}
+      style={{ backgroundColor: theme.input, borderColor: theme.border, color: theme.text }}
       type={inputType}
     />
   );

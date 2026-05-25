@@ -15,6 +15,8 @@ import {
   getFormSubmissionsOutput,
   getFormTrafficFunnelInput,
   getFormTrafficFunnelOutput,
+  getFormThemesInput,
+  getFormThemesOutput,
   getFormsByUserIdInput,
   getFormsByUserIdOutput,
   getListedFormsInput,
@@ -74,6 +76,23 @@ export const formsRouter = router({
     .output(getListedFormsOutput)
     .query(async () => {
       return formsService.getListedForms(undefined);
+    }),
+
+  getFormThemes: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getFormThemes"),
+        tags: TAGS,
+        protect: false,
+        summary: "Get form themes",
+        description: "Return the selectable themes for form rendering.",
+      },
+    })
+    .input(getFormThemesInput)
+    .output(getFormThemesOutput)
+    .query(async () => {
+      return formsService.getFormThemes(undefined);
     }),
 
   getPublishedFormBySlug: publicProcedure

@@ -12,6 +12,8 @@ import type {
   EmailSubmittedResponseOutput,
   GetFormFieldsInput,
   GetFormFieldsOutput,
+  GetFormThemesInput,
+  GetFormThemesOutput,
   GetFormSubmissionsInput,
   GetFormSubmissionsOutput,
   GetListedFormsInput,
@@ -101,6 +103,74 @@ type FormTrafficFunnelRow = {
   started: string | number;
   completed: string | number;
 };
+
+const DEFAULT_FORM_THEME_ID = "midnight";
+const FORM_THEME_IDS = ["midnight", "mint", "studio", "ocean"] as const;
+
+const FORM_THEMES: GetFormThemesOutput["themes"] = [
+  {
+    id: "midnight",
+    name: "Midnight",
+    page: "#181818",
+    surface: "#1e1e1e",
+    elevated: "#252526",
+    border: "#2b2b2b",
+    input: "#181818",
+    text: "#ffffff",
+    muted: "#9d9d9d",
+    accent: "#3794ff",
+    accentText: "#ffffff",
+  },
+  {
+    id: "mint",
+    name: "Mint",
+    page: "#effaf4",
+    surface: "#ffffff",
+    elevated: "#f7fcf9",
+    border: "#bfe7cf",
+    input: "#ffffff",
+    text: "#123524",
+    muted: "#517361",
+    accent: "#16834a",
+    accentText: "#ffffff",
+  },
+  {
+    id: "studio",
+    name: "Studio",
+    page: "#f6f3ee",
+    surface: "#fffaf2",
+    elevated: "#f0e8dc",
+    border: "#d8c9b7",
+    input: "#fffdf8",
+    text: "#2b2520",
+    muted: "#776b60",
+    accent: "#b45309",
+    accentText: "#ffffff",
+  },
+  {
+    id: "ocean",
+    name: "Ocean",
+    page: "#eef7fb",
+    surface: "#ffffff",
+    elevated: "#e3f2f8",
+    border: "#b9dce9",
+    input: "#ffffff",
+    text: "#102f3f",
+    muted: "#526f7c",
+    accent: "#087ea4",
+    accentText: "#ffffff",
+  },
+];
+
+function getThemeId(settings: unknown): GetFormThemesOutput["themes"][number]["id"] {
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+    return DEFAULT_FORM_THEME_ID;
+  }
+
+  const themeId = (settings as Record<string, unknown>).themeId;
+
+  return FORM_THEME_IDS.find((id) => id === themeId) ?? DEFAULT_FORM_THEME_ID;
+}
 
 function setIfDefined<T extends object, K extends keyof T>(
   values: T,
@@ -280,6 +350,7 @@ export class FormsService {
         slug: forms.slug,
         status: forms.status,
         visibility: forms.visibility,
+        settings: forms.settings,
         accessMode: forms.accessMode,
         allowAnonymousResponses: forms.allowAnonymousResponses,
         allowMultipleResponses: forms.allowMultipleResponses,
@@ -304,9 +375,15 @@ export class FormsService {
     return {
       forms: userForms.map(({ passwordHash, ...form }) => ({
         ...form,
+        settings: form.settings as Record<string, unknown> | null,
+        themeId: getThemeId(form.settings),
         passwordProtected: Boolean(passwordHash),
       })),
     };
+  }
+
+  async getFormThemes(_input: GetFormThemesInput): Promise<GetFormThemesOutput> {
+    return { themes: FORM_THEMES };
   }
 
   async getListedForms(_input: GetListedFormsInput): Promise<GetListedFormsOutput> {
@@ -523,6 +600,7 @@ export class FormsService {
         title: forms.title,
         description: forms.description,
         slug: forms.slug,
+        settings: forms.settings,
         accessMode: forms.accessMode,
         allowAnonymousResponses: forms.allowAnonymousResponses,
         allowMultipleResponses: forms.allowMultipleResponses,
@@ -583,8 +661,12 @@ export class FormsService {
           status: _status,
           passwordHash: _passwordHash,
           passwordSalt: _passwordSalt,
+          settings: _settings,
           ...safeForm
-        }) => safeForm)(form),
+        }) => ({
+          ...safeForm,
+          themeId: getThemeId(form.settings),
+        }))(form),
         fields: await getFieldsWithOptions(form.id),
       },
     };

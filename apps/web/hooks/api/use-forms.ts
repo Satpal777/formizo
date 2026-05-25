@@ -24,6 +24,14 @@ export function useGetListedForms() {
   });
 }
 
+export function useGetFormThemes() {
+  return trpc.forms.getFormThemes.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
+  });
+}
+
 export function useGetFormFields(formId: string | null, enabled: boolean) {
   return trpc.forms.getFormFields.useQuery(
     { formId: formId ?? "" },

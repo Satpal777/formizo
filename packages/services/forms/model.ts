@@ -4,6 +4,7 @@ const formStatus = z.enum(["draft", "published", "archived"]);
 const formAccessMode = z.enum(["public", "authenticated"]);
 const formVisibility = z.enum(["listed", "unlisted"]);
 const formResultVisibility = z.enum(["hidden", "after_submit", "creator_only"]);
+const formThemeId = z.enum(["midnight", "mint", "studio", "ocean"]);
 const formFieldType = z.enum([
   "short_text",
   "long_text",
@@ -148,6 +149,8 @@ export const formListItem = z.object({
   slug: requiredString.describe("The form slug"),
   status: formStatus.describe("The form status"),
   visibility: formVisibility.describe("Whether the form is listed in public Explore"),
+  settings: z.record(requiredString, z.any()).nullable().describe("Additional form settings"),
+  themeId: formThemeId.describe("The selected form theme"),
   accessMode: formAccessMode.describe("The access mode of the form"),
   allowAnonymousResponses: z.boolean().describe("Whether anonymous responses are allowed"),
   allowMultipleResponses: z.boolean().describe("Whether multiple responses are allowed"),
@@ -168,6 +171,26 @@ export const formListItem = z.object({
 
 export const getFormsByUserIdOutput = z.object({
   forms: z.array(formListItem),
+});
+
+export const formTheme = z.object({
+  id: formThemeId.describe("The theme id"),
+  name: requiredString.describe("The theme display name"),
+  page: requiredString.describe("The page background color"),
+  surface: requiredString.describe("The primary surface color"),
+  elevated: requiredString.describe("The elevated surface color"),
+  border: requiredString.describe("The border color"),
+  input: requiredString.describe("The input background color"),
+  text: requiredString.describe("The primary text color"),
+  muted: requiredString.describe("The muted text color"),
+  accent: requiredString.describe("The accent color"),
+  accentText: requiredString.describe("The accent text color"),
+});
+
+export const getFormThemesInput = z.void();
+
+export const getFormThemesOutput = z.object({
+  themes: z.array(formTheme).describe("Available form themes"),
 });
 
 export const listedFormItem = z.object({
@@ -335,6 +358,7 @@ export const publishedForm = z.object({
   title: requiredString.describe("The form title"),
   description: z.string().nullable().describe("The form description"),
   slug: requiredString.describe("The form slug"),
+  themeId: formThemeId.describe("The selected form theme"),
   accessMode: formAccessMode.describe("The access mode of the form"),
   allowAnonymousResponses: z.boolean().describe("Whether anonymous responses are allowed"),
   collectEmail: z.boolean().describe("Whether to collect email addresses from respondents"),
@@ -404,6 +428,8 @@ export type ArchiveFormInput = z.infer<typeof archiveFormInput>;
 export type ArchiveFormOutput = z.infer<typeof archiveFormOutput>;
 export type GetFormsByUserIdInput = z.infer<typeof getFormsByUserIdInput>;
 export type GetFormsByUserIdOutput = z.infer<typeof getFormsByUserIdOutput>;
+export type GetFormThemesInput = z.infer<typeof getFormThemesInput>;
+export type GetFormThemesOutput = z.infer<typeof getFormThemesOutput>;
 export type GetListedFormsInput = z.infer<typeof getListedFormsInput>;
 export type GetListedFormsOutput = z.infer<typeof getListedFormsOutput>;
 export type GetFormFieldsInput = z.infer<typeof getFormFieldsInput>;

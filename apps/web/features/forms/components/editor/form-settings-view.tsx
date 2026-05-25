@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Archive, Shield, Eye, FileText, CheckSquare, Sparkles, Search, ChevronDown } from "lucide-react";
 import type { FormFile } from "../../types";
+import { FORM_THEMES } from "../../lib/themes";
+import { useGetFormThemes } from "~/hooks/api/use-forms";
 
 function SettingItem({
   label,
@@ -53,6 +55,8 @@ export function FormSettingsView({
 }) {
   const [activeGroup, setActiveGroup] = useState<"general" | "responses" | "security" | "display" | "results" | "danger">("general");
   const [searchQuery, setSearchQuery] = useState("");
+  const themesQuery = useGetFormThemes();
+  const themes = themesQuery.data?.themes ?? FORM_THEMES;
 
   const groups = [
     { id: "general", label: "General", icon: FileText, desc: "Form metadata and identification" },
@@ -147,6 +151,53 @@ export function FormSettingsView({
                   placeholder="e.g. Feedback survey"
                   value={form.description ?? ""}
                 />
+              }
+            />
+
+            <SettingItem
+              activeGroup={activeGroup}
+              searchQuery={searchQuery}
+              group="general"
+              label="Theme"
+              description="Choose the visual theme used in live preview and the published respondent form."
+              control={
+                <div className="grid w-[280px] grid-cols-2 gap-2">
+                  {themes.map((theme) => {
+                    const selected = form.themeId === theme.id;
+
+                    return (
+                      <button
+                        className={`flex min-h-12 items-center gap-2 rounded-[4px] border px-2 text-left text-[12px] transition ${
+                          selected
+                            ? "border-[#3794ff] bg-[#04395e] text-white"
+                            : "border-[#3c3c3c] bg-[#181818] text-[#cccccc] hover:border-[#555555]"
+                        }`}
+                        key={theme.id}
+                        onClick={() =>
+                          onUpdateForm(form.id, {
+                            settings: { ...form.settings, themeId: theme.id },
+                            themeId: theme.id,
+                          })
+                        }
+                        type="button"
+                      >
+                        <span
+                          className="grid size-7 shrink-0 place-items-center rounded-[4px] border"
+                          style={{
+                            backgroundColor: theme.page,
+                            borderColor: theme.border,
+                          }}
+                        >
+                          <span
+                            className="size-3.5 rounded-full"
+                            style={{ backgroundColor: theme.accent }}
+                          />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{theme.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               }
             />
 
