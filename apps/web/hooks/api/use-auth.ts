@@ -59,3 +59,16 @@ export function useResetPassword() {
     },
   });
 }
+
+export function useSignOut() {
+  const utils = trpc.useUtils();
+
+  return trpc.auth.logout.useMutation({
+    onSuccess: () => {
+      utils.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to sign out");
+    },
+  });
+}

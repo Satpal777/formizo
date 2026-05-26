@@ -29,7 +29,7 @@ import {
 } from "~/features/forms/lib/field-blocks";
 import { DEFAULT_FORM_THEME_ID } from "~/features/forms/lib/themes";
 import type { ActiveDocument, FormField, FormFile } from "~/features/forms/types";
-import { useMe } from "~/hooks/api/use-auth";
+import { useMe, useSignOut } from "~/hooks/api/use-auth";
 import {
   useAddFormFields,
   useArchiveForm,
@@ -45,6 +45,7 @@ import {
 export function AppShell() {
   const explorerPanelRef = useRef<PanelImperativeHandle>(null);
   const meQuery = useMe();
+  const signOutMutation = useSignOut();
   const isMeAuthenticated = meQuery.data?.authenticated === true;
   const formsQuery = useGetFormsByUserId(isMeAuthenticated);
   const createFormMutation = useCreateForm();
@@ -741,6 +742,19 @@ export function AppShell() {
     setActiveDocument(documentId);
   }
 
+  async function handleSignOut() {
+    try {
+      await signOutMutation.mutateAsync(undefined);
+    } catch {
+      return;
+    }
+
+    setIsAuthenticated(false);
+    setForms([]);
+    setActiveDocument("welcome.md");
+    toast.success("Signed out successfully");
+  }
+
   return (
     <main className="grid h-dvh min-h-[620px] grid-rows-[36px_minmax(0,1fr)_22px] overflow-hidden bg-[#1e1e1e] text-[12px] text-[#cccccc]">
       <TitleBar
@@ -759,10 +773,7 @@ export function AppShell() {
             currentPlan={currentPlan}
             onSelectDocument={setActiveDocument}
             onOpenAuth={() => setIsAuthModalOpen(true)}
-            onSignOut={() => {
-              setIsAuthenticated(false);
-              toast.success("Signed out successfully");
-            }}
+            onSignOut={handleSignOut}
           />
         </div>
         <div className="min-w-0 flex-1 overflow-hidden">

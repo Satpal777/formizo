@@ -26,7 +26,7 @@ export function getCookieFactory(req:Request) {
 }
 
 export function clearCookieFactory(res: Response) {
-    return function clearCookie(name: string) {
-        res.clearCookie(name);
+    return function clearCookie(name: string, options?: CookieOptions) {
+        res.clearCookie(name, options);
     };
 }
