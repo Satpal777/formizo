@@ -130,7 +130,7 @@ export default function PricingPage() {
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[#2b2b2b] bg-[#1a1a1c]/80 px-6 backdrop-blur-md">
         <Link
-          href="/"
+          href="/editor"
           className="flex items-center gap-2 text-[12px] font-medium text-[#9d9d9d] transition hover:text-white"
         >
           <ArrowLeft className="size-4" />
@@ -239,7 +239,7 @@ export default function PricingPage() {
                     onClick={() => {
                       const selectedPlan = plan.name.toLowerCase().includes("pro") ? "pro" : "free";
                       localStorage.setItem("formizo_plan", selectedPlan);
-                      window.location.href = "/";
+                      window.location.href = "/editor";
                     }}
                     className={`block w-full rounded-[4px] py-2.5 text-center text-[12px] font-semibold transition cursor-pointer ${
                       plan.popular

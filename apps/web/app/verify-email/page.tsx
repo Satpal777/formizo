@@ -72,7 +72,7 @@ function VerifyEmailContent() {
 
         <div className="mt-6 flex items-center gap-3">
           <Link
-            href="/"
+            href="/editor"
             className="inline-flex h-9 items-center rounded-[4px] bg-[#0e639c] px-4 text-[13px] font-medium text-white hover:bg-[#1177bb]"
           >
             Back to Formizo

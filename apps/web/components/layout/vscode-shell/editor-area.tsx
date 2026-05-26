@@ -11,7 +11,7 @@ import {
   Settings,
 } from "lucide-react";
 
-import { VsCodeLogo } from "./vscode-logo";
+import { FormizoLogo } from "./vscode-logo";
 import { GuideDocument, WelcomeDocument, PricingDocument } from "~/features/forms/components/documents/public-documents";
 import { StatsDocument } from "~/features/forms/components/documents/stats-document";
 import { ResponseDocument } from "~/features/forms/components/documents/response-document";
@@ -150,7 +150,7 @@ function EditorTab({
         ) : activeForm ? (
           <span className="grid size-4 place-items-center rounded-sm bg-[#3794ff]/20 text-[10px] text-[#3794ff]">F</span>
         ) : (
-          <VsCodeLogo className="size-4" />
+          <FormizoLogo className="size-4" />
         )}
         <span className={activeForm ? "min-w-0 flex-1 truncate text-left" : "italic"}>{title}</span>
         {activeForm?.dirty ? <span className="size-2 rounded-full bg-white" /> : null}

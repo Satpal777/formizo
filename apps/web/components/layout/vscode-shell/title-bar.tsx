@@ -9,7 +9,7 @@ import {
   Zap,
 } from "lucide-react";
 
-import { VsCodeLogo } from "./vscode-logo";
+import { FormizoLogo } from "./vscode-logo";
 import { Tooltip } from "~/components/ui/tooltip";
 
 export function TitleBar({
@@ -26,7 +26,7 @@ export function TitleBar({
   return (
     <header className="col-span-3 grid grid-cols-[345px_minmax(280px,585px)_1fr] items-center border-b border-[#2b2b2b] bg-[#181818] px-2.5 text-[#cccccc]">
       <div className="flex items-center gap-2.5">
-        <VsCodeLogo className="size-4 shrink-0" />
+        <FormizoLogo className="size-4 shrink-0" />
         <span className="text-[11px] font-semibold text-[#858585]">Formizo</span>
         {isAuthenticated && (
           currentPlan === "pro" ? (

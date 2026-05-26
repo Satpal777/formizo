@@ -1,135 +1,126 @@
-# Turborepo starter
+# Formizo
 
-This Turborepo starter is maintained by the Turborepo core team.
+Production-style Typeform-inspired form builder SaaS built with Turborepo, Next.js, Express, tRPC, Zod, Drizzle ORM, PostgreSQL, and Scalar API docs.
 
-## Using this example
+Creators can build dynamic forms, publish public or unlisted links, collect anonymous responses, review responses, and inspect analytics. Respondents can open published forms and submit responses without signing in.
 
-Run the following command:
+## Demo Links
 
-```sh
-npx create-turbo@latest
+- Deployed frontend: **TODO: add deployed web URL**
+- Backend API: **TODO: add deployed API URL**
+- Scalar API docs: **TODO: add deployed API docs URL**, usually `/docs` on the API host
+- OpenAPI JSON: **TODO: add deployed OpenAPI URL**, usually `/openapi.json` on the API host
+
+Local development links:
+
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- Backend API: [http://localhost:9000](http://localhost:9000)
+- Scalar API docs: [http://localhost:9000/docs](http://localhost:9000/docs)
+- OpenAPI JSON: [http://localhost:9000/openapi.json](http://localhost:9000/openapi.json)
+
+## Demo Credentials
+
+Use these credentials after running the demo seed data:
+
+```txt
+Email: demo@formizo.dev
+Password: Password123!
 ```
 
-## What's inside?
+## Features
 
-This Turborepo includes the following packages/apps:
+- Creator authentication and protected dashboard
+- Dynamic form builder with configurable fields and validations
+- Public and unlisted published forms
+- Anonymous public form submissions
+- Response management and analytics-ready response data
+- Public explore-ready visibility model
+- Rate limiting for API routes
+- Scalar API documentation from OpenAPI metadata
+- Seedable demo forms, fields, responses, themes, and analytics counts
 
-### Apps and Packages
+## Stack
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- Turborepo monorepo
+- `apps/web`: Next.js frontend
+- `apps/api`: Express backend
+- `packages/trpc`: tRPC routers, OpenAPI metadata, shared API client code
+- `packages/database`: Drizzle ORM schema and migrations
+- `packages/services`: business logic, authentication, forms, and mail flows
+- Zod for input and response validation
+- Scalar for API documentation
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## Getting Started
 
-### Utilities
+Install dependencies:
 
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```bash
+pnpm install
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+Create an environment file:
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+```bash
+cp .env.example .env
 ```
 
-### Develop
+Start the database or provide a hosted PostgreSQL connection string in `DATABASE_URL`.
 
-To develop all apps and packages, run the following command:
+Run database migrations:
 
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+```bash
+pnpm db:migrate
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+Start all apps:
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+```bash
+pnpm dev
 ```
 
-### Remote Caching
+## Useful Commands
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+```bash
+pnpm dev          # run frontend and backend through Turborepo
+pnpm build        # build all apps and packages
+pnpm lint         # lint workspace
+pnpm check-types  # type-check workspace
+pnpm db:generate  # generate Drizzle migrations
+pnpm db:migrate   # run Drizzle migrations
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+## API Documentation
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+Scalar is served by the backend API.
 
+- Local Scalar docs: [http://localhost:9000/docs](http://localhost:9000/docs)
+- Local OpenAPI document: [http://localhost:9000/openapi.json](http://localhost:9000/openapi.json)
+
+The OpenAPI document is generated from tRPC route metadata using `trpc-to-openapi`.
+
+## Environment
+
+All required and optional variables are documented in [.env.example](.env.example).
+
+For local development, the default API URL expected by the web app is:
+
+```txt
+NEXT_PUBLIC_API_URL=http://localhost:9000/trpc
 ```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+The API also exposes REST-style OpenAPI endpoints under:
+
+```txt
+http://localhost:9000/api
 ```
 
-## Useful Links
+## Submission Checklist
 
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+- Add deployed frontend URL to this README
+- Add deployed backend API URL to this README
+- Add deployed Scalar docs URL to this README
+- Confirm demo credentials work
+- Confirm seeded demo data is available
+- Confirm public forms appear in explore/template areas
+- Confirm unlisted forms only work through direct links
+- Confirm unpublished forms do not accept responses
