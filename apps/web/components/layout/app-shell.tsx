@@ -750,7 +750,7 @@ export function AppShell() {
 
   async function handleSignOut() {
     try {
-      await signOutMutation.mutateAsync(undefined);
+      await signOutMutation.mutateAsync({});
     } catch {
       return;
     }
