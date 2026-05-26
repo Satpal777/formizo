@@ -402,6 +402,7 @@ export class UserService {
     const error = "Invalid email or password";
 
     if (!user) {
+      logger.log("@@@77",error)
       throw new Error(error);
     }
 
@@ -409,12 +410,17 @@ export class UserService {
       throw new Error("Email not verified");
     }
 
-    this.validatePassword(user, password, error);
+    logger.log("@@@1")
 
+    this.validatePassword(user, password, error);
+ 
+    logger.log("@@@2")
     const { token, refreshToken } = this.generateAuthTokens(user.id);
 
     await this.saveRefreshToken(user.id, refreshToken);
-
+ 
+    logger.log("@@3")
+    
     return {
       token,
       refreshToken,
