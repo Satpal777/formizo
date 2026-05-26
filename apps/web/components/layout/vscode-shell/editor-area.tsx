@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Tooltip } from "~/components/ui/tooltip";
 import {
   ClipboardList,
@@ -56,10 +56,21 @@ export function EditorArea({
     : activeForm?.name ?? activeDocument;
 
   const [editorMode, setEditorMode] = useState<"edit" | "settings">("edit");
+  const previousFormStatusRef = useRef(activeForm?.status);
 
   useEffect(() => {
     setEditorMode("edit");
   }, [activeDocument]);
+
+  useEffect(() => {
+    const previousStatus = previousFormStatusRef.current;
+
+    if (activeForm?.status === "published" && previousStatus !== "published") {
+      setEditorMode("edit");
+    }
+
+    previousFormStatusRef.current = activeForm?.status;
+  }, [activeForm?.status]);
 
   return (
     <section className="h-full w-full min-w-0 overflow-hidden bg-[#1e1e1e]">

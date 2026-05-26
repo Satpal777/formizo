@@ -133,6 +133,15 @@ export function FormEditor({
   }, [form.content]);
 
   useEffect(() => {
+    if (form.status !== "published") {
+      return;
+    }
+
+    inspectorPanelRef.current?.expand();
+    setIsInspectorCollapsed(false);
+  }, [form.status]);
+
+  useEffect(() => {
     if (activeSuggestion >= filteredSuggestions.length) {
       setActiveSuggestion(0);
     }
