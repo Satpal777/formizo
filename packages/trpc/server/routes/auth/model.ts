@@ -42,7 +42,7 @@ export const meOutput = z.object({
   }),
 });
 
-export const logoutInput = z.undefined().describe("undefined");
+export const logoutInput = z.union([z.undefined(), z.null()]).describe("undefined");
 
 export const logoutOutput = z.object({
   success: z.boolean().describe("Whether logout was successful"),
