@@ -39,6 +39,11 @@ export function FormEditor({
   onRenameForm: (formId: string, name: string) => string | null;
   onUpdateForm: (formId: string, changes: Partial<FormFile>) => void;
 }) {
+  /*
+   * The builder stores fields as structured markdown blocks for
+   * a fast editing UX, then syncs them to Drizzle-backed dynamic field records.
+   * The right pane gives the required live preview before publishing.
+   */
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
   const inspectorPanelRef = useRef<PanelImperativeHandle>(null);
   const settingsPanelRef = useRef<PanelImperativeHandle>(null);

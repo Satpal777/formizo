@@ -162,6 +162,12 @@ const FORM_THEMES: GetFormThemesOutput["themes"] = [
   },
 ];
 
+/**
+ * FormsService contains the production rules behind the SaaS:
+ * creator plan limits, public/listed vs unlisted discovery, published-link
+ * access checks, password protection, analytics counters, response management,
+ * and emailable submitted responses.
+ */
 function getThemeId(settings: unknown): GetFormThemesOutput["themes"][number]["id"] {
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
     return DEFAULT_FORM_THEME_ID;
@@ -293,6 +299,8 @@ function hasAnswerValue(value: unknown) {
 }
 
 function validateRequiredAnswers(fields: FieldWithOptions[], answersByFieldId: Map<string, unknown>) {
+  // Server-side dynamic validation: required field rules are read from the
+  // saved field schema, so public submissions cannot bypass frontend checks.
   for (const field of fields) {
     if (field.type === "statement") {
       continue;
@@ -387,6 +395,7 @@ export class FormsService {
   }
 
   async getListedForms(_input: GetListedFormsInput): Promise<GetListedFormsOutput> {
+    // Public Explore/template galleries intentionally exclude unlisted forms.
     const listedForms = await db
       .select({
         id: forms.id,
@@ -504,6 +513,7 @@ export class FormsService {
   async getFormTrafficFunnel(
     input: GetFormTrafficFunnelInput,
   ): Promise<GetFormTrafficFunnelOutput> {
+    // Analytics are computed from view/start counters plus completed responses.
     const result = await db.execute<FormTrafficFunnelRow>(sql`
       select
         ${forms.viewCount} as "views",
@@ -593,6 +603,8 @@ export class FormsService {
   async getPublishedFormBySlug(
     input: GetPublishedFormBySlugInput,
   ): Promise<GetPublishedFormBySlugOutput> {
+    // Direct-link resolver for respondents. Listed and unlisted forms can both
+    // resolve here, but unpublished/archived/invalid links are blocked cleanly.
     const [form] = await db
       .select({
         id: forms.id,
@@ -675,6 +687,9 @@ export class FormsService {
   async submitPublishedForm(
     input: SubmitPublishedFormInput,
   ): Promise<SubmitPublishedFormOutput> {
+    // Public response submission entry point. This method enforces publish
+    // state, auth/anonymous settings, password protection, duplicate limits,
+    // collected email requirements, and dynamic required-field validation.
     const [form] = await db
       .select({
         id: forms.id,

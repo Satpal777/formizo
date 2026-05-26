@@ -69,6 +69,12 @@ export function AppShell() {
   const formFieldsQuery = useGetFormFields(activeFormId, isMeAuthenticated);
   const hasUnsavedChanges = forms.some((form) => form.dirty);
 
+  /*
+   * This shell is the protected creator workspace. It coordinates
+   * form creation, markdown-style field editing, draft saves, publish/archive
+   * actions, settings, preview, analytics documents, response documents, and
+   * authentication prompts in one SaaS dashboard experience.
+   */
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {

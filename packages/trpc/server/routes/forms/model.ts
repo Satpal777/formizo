@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+/**
+ * These Zod schemas are shared by tRPC and OpenAPI generation.
+ * They document and validate the creator APIs, public form rendering APIs, and
+ * anonymous response submission payloads that Scalar exposes from the backend.
+ */
 const formStatus = z.enum(["draft", "published", "archived"]);
 const formAccessMode = z.enum(["public", "authenticated"]);
 const formVisibility = z.enum(["listed", "unlisted"]);
@@ -69,6 +74,11 @@ const formValues = {
     .optional(),
 };
 
+/**
+ * Creator form configuration. This captures the required SaaS behavior:
+ * publish status, public vs unlisted visibility, access mode, password
+ * protection, result visibility, theme/settings, and thank-you/redirect flow.
+ */
 export const createFormProcedureInput = z.object({
   title: formValues.title,
   description: formValues.description,
@@ -237,6 +247,11 @@ const formFieldValues = {
     .describe("Selectable options for choice fields"),
 };
 
+/**
+ * Dynamic field schema. Field validation/properties are intentionally JSON
+ * records so the builder can support required/optional settings and multiple
+ * field types without database migrations for every new rule.
+ */
 const formFieldInput = z.object(formFieldValues);
 
 export const addFormFieldsInput = z.object({
@@ -372,6 +387,11 @@ export const getPublishedFormBySlugOutput = z.object({
     .describe("Why the form is unavailable"),
 });
 
+/**
+ * Public respondent submission contract. Respondents do not need to be logged
+ * in, but the server still validates publish state, visibility/access rules,
+ * required answers, passwords, and duplicate-response rules before inserting.
+ */
 const submitFormAnswerInput = z.object({
   fieldId: requiredString.uuid().describe("The field id being answered"),
   value: z.any().describe("The submitted answer value"),

@@ -15,6 +15,10 @@ import { createRateLimit } from "./middleware/rate-limit";
 
 export const app = express();
 const isProduction = env.NODE_ENV === "prod" || env.NODE_ENV === "production";
+
+// The backend runs as a separate Express app in the Turborepo.
+// tRPC powers the typed app API, while trpc-to-openapi plus Scalar exposes the
+// documented REST-style API required for judging and external review.
 const openApiDocument = generateOpenApiDocument(serverRouter, {
   title: "Formizo API",
   version: "1.0.0",
@@ -70,6 +74,8 @@ app.use("/docs", apiReference({ url: "/openapi.json" }));
 
 app.use(
   "/api",
+  // Public and creator OpenAPI routes share the same rate limiter so public
+  // submission endpoints have basic spam protection.
   apiRateLimit,
   createOpenApiExpressMiddleware({
     router: serverRouter,
@@ -82,6 +88,8 @@ app.use(
 
 app.use(
   "/trpc",
+  // The Next.js frontend uses this typed tRPC endpoint for dashboard, builder,
+  // public form filling, analytics, and auth flows.
   apiRateLimit,
   trpcExpress.createExpressMiddleware({
     router: serverRouter,

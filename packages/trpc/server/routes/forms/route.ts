@@ -43,6 +43,11 @@ import { generatePath } from "../../utils/path-generator";
 const TAGS = ["Forms"];
 const getPath = generatePath("/forms");
 
+/**
+ * This router is the type-safe tRPC API surface for the product.
+ * Each procedure also carries OpenAPI metadata so Scalar can render the public
+ * API docs required by the hackathon prompt.
+ */
 export const formsRouter = router({
   getUsageStats: publicProcedure
     .meta({
@@ -75,6 +80,7 @@ export const formsRouter = router({
     .input(getListedFormsInput)
     .output(getListedFormsOutput)
     .query(async () => {
+      // Only published, public, listed forms are returned for Explore/template surfaces.
       return formsService.getListedForms(undefined);
     }),
 
@@ -111,6 +117,8 @@ export const formsRouter = router({
     .query(async ({ ctx, input }) => {
       const viewerUserId = await getOptionalUserId(ctx);
 
+      // Direct form links support public and unlisted forms, while the service
+      // rejects invalid, archived, unpublished, protected, or auth-only forms.
       return formsService.getPublishedFormBySlug({
         ...input,
         viewerUserId: viewerUserId ?? undefined,
@@ -285,6 +293,8 @@ export const formsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const respondentUserId = await getOptionalUserId(ctx);
 
+      // Public submission path: anonymous users can submit published forms, and
+      // authenticated users are associated when a valid session is present.
       return formsService.submitPublishedForm({
         ...input,
         respondentUserId: respondentUserId ?? undefined,

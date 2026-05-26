@@ -34,6 +34,12 @@ class MemoryRateLimitStore implements RateLimitStore {
   }
 }
 
+/**
+ * This lightweight IP-based limiter protects public APIs,
+ * including anonymous form submission, from basic spam and abuse. The store is
+ * injectable so production deployments can swap memory for Redis or another
+ * shared backing store.
+ */
 function defaultKeyGenerator(req: Request) {
   return req.ip || req.socket.remoteAddress || "unknown";
 }

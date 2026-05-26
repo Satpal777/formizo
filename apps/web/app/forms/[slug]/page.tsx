@@ -26,6 +26,12 @@ type PublicFormPageProps = {
   }>;
 };
 
+/**
+ * This is the respondent-facing Typeform-style route. It loads
+ * published forms by slug without requiring login, handles unavailable states
+ * gracefully, supports password/auth-gated forms, tracks view/start analytics,
+ * submits answers, and ends with a thank-you/confirmation experience.
+ */
 export default function PublicFormPage({ params }: PublicFormPageProps) {
   const { slug } = use(params);
   const [formPassword, setFormPassword] = useState("");
