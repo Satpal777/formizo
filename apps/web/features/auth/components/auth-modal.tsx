@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { X, Mail, LockKeyhole, User } from "lucide-react";
-import { useSignIn, useSignUp } from "~/hooks/api/use-auth";
+import Link from "next/link";
+import { useForgotPassword, useSignIn, useSignUp } from "~/hooks/api/use-auth";
 
 const signInSchema = z.object({
   email: z.string().email(),
@@ -18,8 +19,13 @@ const signUpSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
 type SignInValues = z.infer<typeof signInSchema>;
 type SignUpValues = z.infer<typeof signUpSchema>;
+type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
 export function AuthModal({
   isOpen,
@@ -32,9 +38,11 @@ export function AuthModal({
 }) {
   const [activeTab, setActiveTab] = React.useState("signin");
   const [signUpSuccessMessage, setSignUpSuccessMessage] = React.useState<string | null>(null);
+  const [resetLink, setResetLink] = React.useState<string | null>(null);
   
   const signInMutation = useSignIn();
   const signUpMutation = useSignUp();
+  const forgotPasswordMutation = useForgotPassword();
 
   const signInForm = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -44,6 +52,11 @@ export function AuthModal({
   const signUpForm = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { name: "", email: "", password: "" },
+  });
+
+  const forgotPasswordForm = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
   });
 
   function onSignInSubmit(data: SignInValues) {
@@ -64,6 +77,15 @@ export function AuthModal({
           signUpForm.reset();
           onSuccess();
         }
+      },
+    });
+  }
+
+  function onForgotPasswordSubmit(data: ForgotPasswordValues) {
+    forgotPasswordMutation.mutate(data, {
+      onSuccess: (result) => {
+        const link = `/reset-password?id=${encodeURIComponent(result.id)}&token=${encodeURIComponent(result.forgotPasswordToken)}`;
+        setResetLink(link);
       },
     });
   }
@@ -97,6 +119,12 @@ export function AuthModal({
                 className="pb-2 text-[13px] font-medium text-[#858585] data-[state=active]:border-b-2 data-[state=active]:border-[#0078d4] data-[state=active]:text-[#cccccc]"
               >
                 Sign Up
+              </Tabs.Trigger>
+              <Tabs.Trigger
+                value="forgot"
+                className="pb-2 text-[13px] font-medium text-[#858585] data-[state=active]:border-b-2 data-[state=active]:border-[#0078d4] data-[state=active]:text-[#cccccc]"
+              >
+                Reset
               </Tabs.Trigger>
             </Tabs.List>
 
@@ -139,11 +167,61 @@ export function AuthModal({
                 </label>
 
                 <button
+                  className="text-[12px] text-[#3794ff] hover:text-[#9cdcfe]"
+                  onClick={() => setActiveTab("forgot")}
+                  type="button"
+                >
+                  Forgot password?
+                </button>
+
+                <button
                   type="submit"
                   disabled={signInMutation.isPending}
                   className="h-8 w-full rounded-[4px] bg-[#0078d4] text-[12px] font-medium text-white hover:bg-[#0b85df] disabled:opacity-50"
                 >
                   {signInMutation.isPending ? "Signing in..." : "Sign In"}
+                </button>
+              </form>
+            </Tabs.Content>
+
+            <Tabs.Content value="forgot" className="focus:outline-none">
+              <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+                <p className="text-[13px] leading-5 text-[#cccccc]">
+                  Enter your verified account email and Formizo will create a password reset link.
+                </p>
+
+                {resetLink ? (
+                  <div className="rounded-[4px] border border-[#2f3b2f] bg-[#1b241d] p-3 text-[12px] text-[#89d185]">
+                    <p>Password reset link generated. If SMTP is configured, it was also emailed.</p>
+                    <Link className="mt-2 block break-all text-[#9cdcfe] hover:text-white" href={resetLink}>
+                      Open reset link
+                    </Link>
+                  </div>
+                ) : null}
+
+                <label className="block">
+                  <span className="mb-1.5 block text-[12px] text-[#cccccc]">Email</span>
+                  <span className="flex h-9 items-center gap-2 rounded-[3px] border border-[#3c3c3c] bg-[#1e1e1e] px-2 focus-within:border-[#0078d4]">
+                    <Mail className="size-4 text-[#858585]" />
+                    <input
+                      className="min-w-0 flex-1 bg-transparent text-[13px] text-white outline-none"
+                      placeholder="you@formizo.dev"
+                      {...forgotPasswordForm.register("email")}
+                    />
+                  </span>
+                  {forgotPasswordForm.formState.errors.email && (
+                    <span className="mt-1 block text-[11px] text-red-400">
+                      {forgotPasswordForm.formState.errors.email.message}
+                    </span>
+                  )}
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={forgotPasswordMutation.isPending}
+                  className="h-8 w-full rounded-[4px] bg-[#0078d4] text-[12px] font-medium text-white hover:bg-[#0b85df] disabled:opacity-50"
+                >
+                  {forgotPasswordMutation.isPending ? "Creating link..." : "Create Reset Link"}
                 </button>
               </form>
             </Tabs.Content>

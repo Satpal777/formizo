@@ -15,6 +15,13 @@ interface SendOnboardingEmailInput {
   name: string;
 }
 
+interface SendPasswordResetEmailInput {
+  to: string;
+  name: string;
+  userId: string;
+  token: string;
+}
+
 interface SendFormResponseEmailInput {
   to: string;
   respondentName: string;
@@ -55,6 +62,13 @@ function createVerificationLink(userId: string, token: string) {
   verificationUrl.searchParams.set("id", userId);
   verificationUrl.searchParams.set("token", token);
   return verificationUrl.toString();
+}
+
+function createPasswordResetLink(userId: string, token: string) {
+  const resetUrl = new URL("/reset-password", env.ONBOARDING_CTA_URL);
+  resetUrl.searchParams.set("id", userId);
+  resetUrl.searchParams.set("token", token);
+  return resetUrl.toString();
 }
 
 function escapeHtml(value: string) {
@@ -166,6 +180,39 @@ export async function sendOnboardingEmail(input: SendOnboardingEmailInput) {
       "",
       "Create your first form:",
       createFormUrl,
+    ].join("\n"),
+    html: htmlContent,
+  });
+}
+
+export async function sendPasswordResetEmail(input: SendPasswordResetEmailInput) {
+  const transport = createMailTransport();
+  const resetLink = createPasswordResetLink(input.userId, input.token);
+  const name = input.name.trim() || "there";
+  const escapedName = escapeHtml(name);
+
+  const htmlContent = `
+    <p>Hi ${escapedName},</p>
+    <p>Use the link below to reset your Formizo password. This link expires in 1 hour.</p>
+    <p>
+      <a href="${resetLink}" style="display:inline-block;background:#0e639c;color:#ffffff;padding:10px 14px;text-decoration:none;border-radius:5px;">
+        Reset password
+      </a>
+    </p>
+    <p>If you did not request this, you can ignore this email.</p>
+  `;
+
+  await transport.sendMail({
+    from: env.SMTP_FROM!,
+    to: input.to,
+    subject: "Reset your Formizo password",
+    text: [
+      `Hi ${name},`,
+      "",
+      "Use this link to reset your Formizo password. It expires in 1 hour:",
+      resetLink,
+      "",
+      "If you did not request this, you can ignore this email.",
     ].join("\n"),
     html: htmlContent,
   });

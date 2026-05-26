@@ -29,7 +29,7 @@ import {
 } from "../utils/utils";
 import { env } from "../env";
 import type { JwtPayload, SignOptions } from "jsonwebtoken";
-import { sendOnboardingEmail, sendVerificationEmail } from "../mail";
+import { sendOnboardingEmail, sendPasswordResetEmail, sendVerificationEmail } from "../mail";
 
 /**
  * UserService class provides methods for user management, including creating users with email and password,
@@ -196,6 +196,27 @@ export class UserService {
     }
   }
 
+  private async sendPasswordResetEmailSafely(input: {
+    email: string;
+    name: string;
+    userId: string;
+    token: string;
+  }) {
+    try {
+      await sendPasswordResetEmail({
+        to: input.email,
+        name: input.name,
+        userId: input.userId,
+        token: input.token,
+      });
+
+      return true;
+    } catch (error) {
+      logger.error("Failed to send password reset email", { error });
+      return false;
+    }
+  }
+
   /**
    * Creates a new user with the provided email and password.
    * @param input
@@ -320,6 +341,13 @@ export class UserService {
         forgotPasswordTokenExpiresAt: expiresAt,
       })
       .where(eq(users.id, user.id));
+
+    await this.sendPasswordResetEmailSafely({
+      email: user.email,
+      name: user.name ?? user.email,
+      userId: user.id,
+      token: rawToken,
+    });
 
     return {
       id: user.id,
